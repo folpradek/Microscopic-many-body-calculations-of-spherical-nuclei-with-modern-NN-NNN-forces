@@ -23,3 +23,6 @@ HF based Leading Order Many-Body Perturbation Theory calculation.
 Spherical Hartree-Fock Random-Phase Approximation & Tamm-Dancoff Approximation solver for Even-Even nuclei.
 
 Feel free to use & improve the code. Just please credit us whenever you explicitly use parts of the code.
+
+
+Later, when most of code is finished & I have more time, I will add more detailed description & a pdf manual on how to run & use the code...
