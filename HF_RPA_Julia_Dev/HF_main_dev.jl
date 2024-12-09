@@ -24,9 +24,52 @@
 #                   for S0 strenght functions and total photoabsorbtion cross section in units of MeV.
 #
 #'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+using DelimitedFiles, LinearAlgebra, CGcoefficient, BenchmarkTools
+include("Source/MatrixElements/Orb.jl")
+include("Source/Functions/Functions.jl")
+include("Source/MatrixElements/TrOp.jl")
+include("Source/MatrixElements/T1B.jl")
+include("Source/MatrixElements/T2B.jl")
+include("Source/MatrixElements/V2B.jl")
+include("Source/MatrixElements/V3B_NO2B.jl")
+include("Source/MatrixElements/V2B_Res.jl")
+include("Source/HF/HF_Solver.jl")
+include("Source/HF/HF_NO2B.jl")
+include("Source/HF/HF_Density_Operator.jl")
+include("Source/HF/HF_Orbital_Ordering.jl")
+include("Source/HF/HF_Radial_Density.jl")
+include("Source/HF/HF_Radial_Potential.jl")
+include("Source/HF/HF_Energy.jl")
+include("Source/HF/HF_Summary.jl")
+include("Source/HF/HF_Export.jl")
+include("Source/HF/HF_MBPT.jl")
+include("Source/HF/HF_Radial_MBPT.jl")
+include("Source/HF_RPA/HF_RPA_Solver.jl")
+include("Source/HF_RPA/HF_RPA.jl")
+include("Source/HF_RPA/HF_RPA_Phonon_Count.jl") 
+include("Source/HF_RPA/HF_RPA_Allocate.jl")
+include("Source/HF_RPA/HF_RPA_Spurious.jl")
+include("Source/HF_RPA/HF_RPA_Diagonalize.jl")
+include("Source/HF_RPA/HF_RPA_Corr_Energy.jl")
+include("Source/HF_RPA/HF_RPA_OBDM.jl")
+include("Source/HF_RPA/HF_RPA_Collectivity.jl")
+include("Source/HF_RPA/HF_RPA_Radial_Density.jl")
+include("Source/HF_RPA/HF_RPA_Transitions.jl")
+include("Source/HF_RPA/HF_RPA_Export.jl")
 
-include("Source/HF_RPA_Import.jl")
-using .HF_RPA_Module
+include("Source/HF_ERPA/HF_ERPA_Solver.jl")
+include("Source/HF_ERPA/HF_ERPA.jl")
+include("Source/HF_ERPA/HF_ERPA_Phonon_Count.jl")
+include("Source/HF_ERPA/HF_ERPA_Iteration.jl")
+include("Source/HF_ERPA/HF_ERPA_OBDM.jl")
+include("Source/HF_ERPA/HF_ERPA_Allocate.jl")
+include("Source/HF_ERPA/HF_ERPA_Diagonalize.jl")
+include("Source/HF_ERPA/HF_ERPA_Spurious.jl")
+include("Source/HF_ERPA/HF_ERPA_Transitions.jl")
+include("Source/HF_ERPA/HF_ERPA_Energy.jl")
+include("Source/HF_ERPA/HF_ERPA_Radial_Density.jl")
+include("Source/HF_ERPA/HF_ERPA_Collectivity.jl")
+include("Source/HF_ERPA/HF_ERPA_Export.jl")
 
 function HF_main()
 
@@ -34,15 +77,15 @@ function HF_main()
     NN_File = "IO/NN.bin"
     NNN_File = "IO/NNN.bin"
     Calc_Params = Any[16, 8, 3, 6, 9, "CMS1+2B", true, "Bin"]
-    #HF_Solver(Int_Params, NN_File, NNN_File, Calc_Params)
-
-    #RPA_Input_Path = "IO/A16_Z8_hw16.0_Nmax3_N2max6_N3max9_CMS1+2B"
-    #RPA_Calc_Params = Any[16, 8, 16.0, 3, false, [0.0, 50.0, 0.5], [0.0, 50.0, 3.0]]
-    #HF_RPA_Solver(RPA_Input_Path, RPA_Calc_Params)
+    HF_Solver(Int_Params, NN_File, NNN_File, Calc_Params)
 
     RPA_Input_Path = "IO/A16_Z8_hw16.0_Nmax3_N2max6_N3max9_CMS1+2B"
     RPA_Calc_Params = Any[16, 8, 16.0, 3, true, [0.0, 50.0, 0.5], [0.0, 50.0, 3.0]]
-    HF_ERPA_Solver(RPA_Input_Path, RPA_Calc_Params)
+    HF_RPA_Solver(RPA_Input_Path, RPA_Calc_Params)
+
+    RPA_Input_Path = "IO/A16_Z8_hw16.0_Nmax3_N2max6_N3max9_CMS1+2B"
+    RPA_Calc_Params = Any[16, 8, 16.0, 3, true, [0.0, 50.0, 0.5], [0.0, 50.0, 3.0]]
+    #HF_ERPA_Solver(RPA_Input_Path, RPA_Calc_Params)
 
 end
 

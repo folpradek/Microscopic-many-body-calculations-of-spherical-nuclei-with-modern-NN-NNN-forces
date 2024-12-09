@@ -26,6 +26,9 @@ function HF_RPA(Params::Vector{Any},Orb::Vector{NOrb},Orb_NN::NNOrb,VNN::NNInt)
     # Solve TDA eigenvalue problem and RPA generalized-eigenvalue problem ...
     @time E_TDA, X_TDA, E_RPA, X_RPA, Y_RPA = HF_RPA_Diagonalize(Params,A,B,N_nu,Orb_Phonon,Phonon,Particle,Hole,TrOp)
 
+    # Calculate RPA One-Body Density Matrix (OBDM) ...
+    @time pRho_RPA, nRho_RPA = HF_RPA_OBDM(Params,Orb,Orb_Phonon,Phonon,Particle,Hole,N_nu,Y_RPA)
+
     @time s_TDA, s_RPA = HF_RPA_Collectivity(Params,N_nu,X_TDA,X_RPA,Y_RPA)
 
     # Calculate RPA correlation energy ...
@@ -38,8 +41,8 @@ function HF_RPA(Params::Vector{Any},Orb::Vector{NOrb},Orb_NN::NNOrb,VNN::NNInt)
     @time rB_TDA = HF_RPA_rB(Params,N_nu,rM_TDA)
     @time rB_RPA = HF_RPA_rB(Params,N_nu,rM_RPA)
 
-    # RPA& TDA complete solutions export ...
-    @time HF_RPA_Export(Params,N_nu,E_Corr_RPA,E_TDA,E_RPA,s_TDA,s_RPA,rB_TDA,rB_RPA)
+    # RPA & TDA complete solutions export ...
+    @time HF_RPA_Export(Params,Orb,N_nu,E_Corr_RPA,E_TDA,E_RPA,X_RPA,Y_RPA,s_TDA,s_RPA,rB_TDA,rB_RPA,pRho_RPA,nRho_RPA)
 
     return
 end

@@ -1,5 +1,5 @@
-function HF_RPA_Export(Params::Vector{Any},N_nu::Matrix{Int64},E_Corr_RPA::Float64,E_TDA::Matrix{Vector{Float64}},E_RPA::Matrix{Vector{ComplexF64}},s_TDA::Matrix{Vector{Float64}},s_RPA::Matrix{Vector{Float64}},rB_TDA::ReducedTransition,rB_RPA::ReducedTransition)
-    
+function HF_RPA_Export(Params::Vector{Any},Orb::Vector{NOrb},N_nu::Matrix{Int64},E_Corr_RPA::Float64,E_TDA::Matrix{Vector{Float64}},E_RPA::Matrix{Vector{ComplexF64}},X_RPA::Matrix{Matrix{ComplexF64}},Y_RPA::Matrix{Matrix{ComplexF64}},s_TDA::Matrix{Vector{Float64}},s_RPA::Matrix{Vector{Float64}},rB_TDA::ReducedTransition,rB_RPA::ReducedTransition,pRho_RPA::Matrix{Float64},nRho_RPA::Matrix{Float64})
+
     # Export of RPA & TDA summary ...
     @time HF_RPA_Summary(Params,N_nu,E_Corr_RPA)
 
@@ -8,6 +8,15 @@ function HF_RPA_Export(Params::Vector{Any},N_nu::Matrix{Int64},E_Corr_RPA::Float
 
     # Export of RPA & TDA plot-ready spectra ...
     @time HF_RPA_Plot_Spectrum_Export(Params,N_nu,E_TDA,E_RPA)
+
+    # Export of RPA |X|^2 & |Y|^2 amplitudes, not plot ready ...
+    @time HF_RPA_Amplitudes_Export(Params,N_nu,E_RPA,X_RPA,Y_RPA)
+
+    # Export of plot ready |Y|^2 RPA amplitudes ...
+    @time HF_RPA_Y_Export(Params,N_nu,E_RPA,Y_RPA)
+
+    # Export RPA radial densities & radii ...
+    @time HF_RPA_Radial_Density(Params,Orb,pRho_RPA,nRho_RPA)
 
     # Export of RPA & TDA electric transitions ...
     @time HF_RPA_Transition_Export(Params,N_nu,E_TDA,E_RPA,rB_TDA,rB_RPA)
@@ -248,6 +257,113 @@ function HF_RPA_Plot_Spectrum_Export(Params::Vector{Any},N_nu::Matrix{Int64},E_T
     return
 end
 
+function HF_RPA_Amplitudes_Export(Params::Vector{Any},N_nu::Matrix{Int64},E_RPA::Matrix{Vector{ComplexF64}},X_RPA::Matrix{Matrix{ComplexF64}},Y_RPA::Matrix{Matrix{ComplexF64}})
+    N_max = Params[4]
+    N_2max = 2*N_max
+    J_max = N_2max + 1
+    Orthogon = Params[5]
+    Output_File = Params[8]
+
+    if Orthogon == true
+        Output_Path = Output_File * "/Amplitudes/HF_RPA_Amplitudes_Ortho.dat"
+    else
+        Output_Path = Output_File * "/Amplitudes/HF_RPA_Amplitudes_Spur.dat"
+    end
+
+    println("\nPreparing export of RPA amplitudes X & Y ...")
+
+
+    open(Output_Path, "w") do Write_File
+        println(Write_File, "E\t|X|^2\t|Y|^2")
+        @inbounds for J in 0:J_max
+            @inbounds for P in 1:2
+                if P == 1
+                    println(Write_File, "\nJ = " * string(J) * ", P = +")
+                else
+                    println(Write_File, "\nJ = " * string(J) * ", P = -")
+                end
+                N_ph = N_nu[J+1,P]
+                if Orthogon == true
+                    if (J == 1 && P == 2)
+                        @inbounds for nu in 2:N_ph
+                            x = @views norm(X_RPA[J+1,P][:,nu])^2
+                            y = @views norm(Y_RPA[J+1,P][:,nu])^2
+                            println(Write_File, string(round(real(E_RPA[J+1,P][nu]),digits=4)) * "\t" * string(round(x,digits=7)) * "\t" * string(round(y,digits=7)))
+                        end
+                    else
+                        @inbounds for nu in 1:N_ph
+                            x = @views norm(X_RPA[J+1,P][:,nu])^2
+                            y = @views norm(Y_RPA[J+1,P][:,nu])^2
+                            println(Write_File, string(round(real(E_RPA[J+1,P][nu]),digits=4)) * "\t" * string(round(x,digits=7)) * "\t" * string(round(y,digits=7)))
+                        end
+                    end
+                else
+                    @inbounds for nu in 1:N_ph
+                        x = @views norm(X_RPA[J+1,P][:,nu])^2
+                        y = @views norm(Y_RPA[J+1,P][:,nu])^2
+                        println(Write_File, string(round(real(E_RPA[J+1,P][nu]),digits=4)) * "\t" * string(round(x,digits=7)) * "\t" * string(round(y,digits=7)))
+                    end
+                end
+            end
+        end
+    end
+
+    println("\nExported norms of RPA amplitudes |X|^2 & |Y|^2 ...")
+    return
+end
+
+function HF_RPA_Y_Export(Params::Vector{Any},N_nu::Matrix{Int64},E_RPA::Matrix{Vector{ComplexF64}},Y_RPA::Matrix{Matrix{ComplexF64}})
+    N_max = Params[4]
+    N_2max = 2*N_max
+    J_max = N_2max + 1
+    Orthogon = Params[5]
+    Output_File = Params[8]
+
+    if Orthogon == true
+        Output_Path = Output_File * "/Amplitudes/HF_RPA_Y_Amplitudes_Ortho.dat"
+    else
+        Output_Path = Output_File * "/Amplitudes/HF_RPA_Y_Amplitudes_Spur.dat"
+    end
+
+    println("\nPreparing export of RPA |Y|^2 amplitudes ...")
+
+    N_ph = sum(N_nu)
+    E_RPA_ord = Vector{Float64}(undef,N_ph)
+    y_RPA = Vector{Float64}(undef,N_ph)
+
+    ph_count = 0
+    @inbounds for J in 0:J_max
+        @inbounds for P in 1:2
+            N_ph = N_nu[J+1,P]
+            @inbounds for nu in 1:N_ph
+                ph_count += 1
+                E_RPA_ord[ph_count] = real(E_RPA[J+1,P][nu])
+                ySum = 0.0
+                @inbounds for ph in 1:N_ph
+                    R = abs(Y_RPA[J+1,P][ph,nu])^2
+                    ySum += R
+                end
+                y_RPA[ph_count] = ySum
+            end
+        end
+    end
+
+    Sort_Ind = sortperm(E_RPA_ord)
+    E_RPA_ord = E_RPA_ord[Sort_Ind]
+    y_RPA = y_RPA[Sort_Ind]
+
+    open(Output_Path, "w") do Write_File
+        N_ph = sum(N_nu)
+        @inbounds for ph in 1:N_ph
+            println(Write_File, string(ph) * "\t" * string(round(y_RPA[ph],digits=6)))
+        end
+    end
+
+    println("\nExported |Y|^2 RPA amplitudes ...")
+
+    return
+end
+
 function HF_RPA_Transition_Export(Params::Vector{Any},N_nu::Matrix{Int64},E_TDA::Matrix{Vector{Float64}},E_RPA::Matrix{Vector{ComplexF64}},rB_TDA::ReducedTransition,rB_RPA::ReducedTransition)
     Orthogon = Params[5]
     Output_File = Params[8]
@@ -337,15 +453,15 @@ function HF_RPA_Transition_Export(Params::Vector{Any},N_nu::Matrix{Int64},E_TDA:
             P = 2
             N_ph = N_nu[J+1,P]
             println(Write_File, "E\t\tB_ph")
-            @inbounds for nu in 2:N_ph
+            @inbounds for nu in 1:N_ph
                 println(Write_File, string(round(E_TDA[J+1,P][nu], sigdigits=8)) * "\t" * string(round(rB_TDA.E1.ph[nu],digits = 8)))
             end
             println(Write_File, "\nE\t\tB_is")
-            @inbounds for nu in 2:N_ph
+            @inbounds for nu in 1:N_ph
                 println(Write_File, string(round(E_TDA[J+1,P][nu], sigdigits=8)) * "\t" * string(round(rB_TDA.E1.is[nu],digits = 8)))
             end
             println(Write_File, "\nE\t\tB_iv")
-            @inbounds for nu in 2:N_ph
+            @inbounds for nu in 1:N_ph
                 println(Write_File, string(round(E_TDA[J+1,P][nu], sigdigits=8)) * "\t" * string(round(rB_TDA.E1.iv[nu],digits = 8)))
             end
         end
@@ -356,15 +472,15 @@ function HF_RPA_Transition_Export(Params::Vector{Any},N_nu::Matrix{Int64},E_TDA:
             P = 2
             N_ph = N_nu[J+1,P]
             println(Write_File, "E\t\tB_ph")
-            @inbounds for nu in 2:N_ph
+            @inbounds for nu in 1:N_ph
                 println(Write_File, string(round(E_RPA[J+1,P][nu], sigdigits=8)) * "\t" * string(round(rB_RPA.E1.ph[nu],digits = 8)))
             end
             println(Write_File, "\nE\t\tB_is")
-            @inbounds for nu in 2:N_ph
+            @inbounds for nu in 1:N_ph
                 println(Write_File, string(round(E_RPA[J+1,P][nu], sigdigits=8)) * "\t" * string(round(rB_RPA.E1.is[nu],digits = 8)))
             end
             println(Write_File, "\nE\t\tB_iv")
-            @inbounds for nu in 2:N_ph
+            @inbounds for nu in 1:N_ph
                 println(Write_File, string(round(E_RPA[J+1,P][nu], sigdigits=8)) * "\t" * string(round(rB_RPA.E1.iv[nu],digits = 8)))
             end
         end

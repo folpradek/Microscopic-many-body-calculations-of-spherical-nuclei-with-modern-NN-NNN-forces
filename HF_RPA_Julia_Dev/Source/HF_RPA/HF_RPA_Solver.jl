@@ -34,7 +34,9 @@ function HF_RPA_Solver(Input_File::String,Calc_Params::Vector{Any})
     if !(isdir(Params[8] * "/Spectra"))
         mkdir(Params[8] * "/Spectra")
     end
-
+    if !(isdir(Params[8] * "/Amplitudes"))
+        mkdir(Params[8] * "/Amplitudes")
+    end
     # Make s.p. orbitals - NuHamil ordering convention ...
     Orb = Make_Orbitals(Params[1],Params[2],Params[4])
 

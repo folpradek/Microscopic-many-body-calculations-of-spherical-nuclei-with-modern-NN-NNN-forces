@@ -232,7 +232,8 @@ function HF_RPA_Diagonalize(Params::Vector{Any},A::Matrix{Matrix{Float64}},B::Ma
 
             X_RPA_JP_new = zeros(ComplexF64, N_ph, N_ph)
             Y_RPA_JP_new = zeros(ComplexF64, N_ph, N_ph)
-            @views X_RPA_JP_new[:,1] = Spur_State
+            @views X_RPA_JP_new[:,1] = Spur_State / sqrt(2)
+            @views Y_RPA_JP_new[:,1] = -1.0 *  Spur_State / sqrt(2)
             @inbounds for a in 2:N_ph
                 @views X_RPA_JP_new[:,a] = Pm[:,a-1]
                 @views Y_RPA_JP_new[:,a] = Qm[:,a-1]
@@ -324,21 +325,17 @@ function HF_RPA_Diagonalize(Params::Vector{Any},A::Matrix{Matrix{Float64}},B::Ma
             @inbounds for ph in 1:N_ph
                 RPA_norm += abs(X_RPA_JP[ph,nu])^2 - abs(Y_RPA_JP[ph,nu])^2
             end
-            # For physical states, this normalization procedure applies ...
             if abs(RPA_norm) > 1e-8
                 @views X_RPA_JP[:,nu] = X_RPA_JP[:,nu] ./ sqrt(abs(RPA_norm))
                 @views Y_RPA_JP[:,nu] = Y_RPA_JP[:,nu] ./ sqrt(abs(RPA_norm))
-
-            # For unphysical spurious 1- state, normalization needs to be done carefully ...
-            elseif J == 1 && P == 2 && Orthogon == false
+            else
                 RPA_norm = 0.0
                 @inbounds for ph in 1:N_ph
                     RPA_norm += abs(X_RPA_JP[ph,nu])^2
                 end
                 @views X_RPA_JP[:,nu] = X_RPA_JP[:,nu] ./ sqrt(abs(RPA_norm))
-                @views Y_RPA_JP[:,nu] = -1.0 * Y_RPA_JP[:,nu] ./ sqrt(abs(RPA_norm))
+                @views Y_RPA_JP[:,nu] = -1.0 * X_RPA_JP[:,nu] ./ sqrt(abs(RPA_norm))
             end
-
         end
 
         E_RPA[J+1,P] = E_RPA_JP

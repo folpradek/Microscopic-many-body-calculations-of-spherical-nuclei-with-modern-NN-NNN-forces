@@ -253,7 +253,7 @@ function HFMBPT_Density(Params::Vector{Any},Orb::Vector{NOrb},Orb_NN::NNOrb,N_Pa
                                     (rem(l_p + l_f, 2) == rem(l_q + l_r, 2)) && (rem(l_p + l_f + l_q + l_r, 2) == P)
 
                                     ME = 4.0 * Float64(2*J + 1) / Float64(j_p + 1) * V2B(a_p,a_f,a_q,a_r,J,0,VNN_res.pn,Orb,Orb_NN) * 
-                                            V2B(a_q,a_r,a_h,a_f,J,0,VNN_res.pn,Orb,Orb_NN) / (E_h - E_p) / (E_h + E_f - E_q - E_r) / 4.0
+                                            V2B(a_q,a_r,a_h,a_f,J,0,VNN_res.pn,Orb,Orb_NN) / (E_h - E_p) / (E_h + E_f - E_q - E_r) / 1.0
                                     hpSum += ME
                                 end
                             end
@@ -281,7 +281,7 @@ function HFMBPT_Density(Params::Vector{Any},Orb::Vector{NOrb},Orb_NN::NNOrb,N_Pa
                                     (rem(l_g + l_f, 2) == rem(l_h + l_r, 2)) && (rem(l_p + l_f + l_h + l_r, 2) == P)
 
                                     ME = 4.0 * Float64(2*J + 1) / Float64(j_p + 1) * V2B(a_p,a_r,a_g,a_f,J,0,VNN_res.pn,Orb,Orb_NN) * 
-                                            V2B(a_g,a_f,a_h,a_r,J,0,VNN_res.pn,Orb,Orb_NN) / (E_h - E_p) / (E_g + E_f - E_p - E_r) / 4.0
+                                            V2B(a_g,a_f,a_h,a_r,J,0,VNN_res.pn,Orb,Orb_NN) / (E_h - E_p) / (E_g + E_f - E_p - E_r) / 1.0
                                     phSum += ME
                                 end
                             end
@@ -418,7 +418,7 @@ function HFMBPT_Density(Params::Vector{Any},Orb::Vector{NOrb},Orb_NN::NNOrb,N_Pa
                                 paSum = 0.0
                                 if (rem(l_h + l_g, 2) == rem(l_q + l_a, 2)) && (rem(l_p + l_q + l_h + l_g, 2) == rem(l_a + l_p, 2)) && (j_a == j_p) && (l_a == l_p)
                                     ME = 2.0 * Float64(2*J + 1) / Float64(j_p + 1) * V2B(a_p,a_q,a_h,a_g,J,0,VNN_res.pn,Orb,Orb_NN) *
-                                            V2B(a_h,a_g,a_a,a_q,J,0,VNN_res.pn,Orb,Orb_NN) / (E_h + E_g - E_p - E_q) / (E_h + E_g - E_a - E_q) / 4.0
+                                            V2B(a_h,a_g,a_a,a_q,J,0,VNN_res.pn,Orb,Orb_NN) / (E_h + E_g - E_p - E_q) / (E_h + E_g - E_a - E_q) / 1.0
                                     paSum += ME
                                 end
                                 dpRho[a_p,a_a] += paSum
@@ -462,7 +462,7 @@ function HFMBPT_Density(Params::Vector{Any},Orb::Vector{NOrb},Orb_NN::NNOrb,N_Pa
                                 chSum = 0.0
                                 if (rem(l_g + l_c, 2) == rem(l_q + l_p, 2)) && (rem(l_p + l_q + l_h + l_g, 2) == rem(l_h + l_c, 2)) && (j_c == j_h) && (l_c == j_h)
                                     ME = - 2.0 * Float64(2*J + 1) / Float64(j_h + 1) * V2B(a_p,a_q,a_h,a_g,J,0,VNN_res.pn,Orb,Orb_NN) *
-                                            V2B(a_c,a_g,a_p,a_q,J,0,VNN_res.pn,Orb,Orb_NN) / (E_h + E_g - E_p - E_q) / (E_c + E_g - E_p - E_q) / 4.0
+                                            V2B(a_c,a_g,a_p,a_q,J,0,VNN_res.pn,Orb,Orb_NN) / (E_h + E_g - E_p - E_q) / (E_c + E_g - E_p - E_q) / 1.0
                                     chSum += ME
                                 end
                                 dpRho[a_c,a_h] += chSum
@@ -593,7 +593,7 @@ function HFMBPT_Density(Params::Vector{Any},Orb::Vector{NOrb},Orb_NN::NNOrb,N_Pa
                                     (rem(l_p + l_f, 2) == rem(l_q + l_r, 2)) && (rem(l_p + l_f + l_q + l_r, 2) == P)
 
                                     ME = 4.0 * Float64(2*J + 1) / Float64(j_p + 1) * V2B(a_f,a_p,a_r,a_q,J,0,VNN_res.pn,Orb,Orb_NN) * 
-                                            V2B(a_r,a_q,a_f,a_h,J,0,VNN_res.pn,Orb,Orb_NN) / (E_h - E_p) / (E_h + E_f- E_q - E_r) / 4.0
+                                            V2B(a_r,a_q,a_f,a_h,J,0,VNN_res.pn,Orb,Orb_NN) / (E_h - E_p) / (E_h + E_f- E_q - E_r) / 1.0
                                     hpSum += ME
                                 end
                             end
@@ -621,7 +621,7 @@ function HFMBPT_Density(Params::Vector{Any},Orb::Vector{NOrb},Orb_NN::NNOrb,N_Pa
                                     (rem(l_g + l_f, 2) == rem(l_h + l_r, 2)) && (rem(l_p + l_f + l_h + l_r, 2) == P)
 
                                     ME = 4.0 * Float64(2*J + 1) / Float64(j_p + 1) * V2B(a_r,a_p,a_f,a_g,J,0,VNN_res.pn,Orb,Orb_NN) * 
-                                            V2B(a_f,a_g,a_r,a_h,J,0,VNN_res.pn,Orb,Orb_NN) / (E_h - E_p) / (E_g + E_f - E_p - E_r) / 4.0
+                                            V2B(a_f,a_g,a_r,a_h,J,0,VNN_res.pn,Orb,Orb_NN) / (E_h - E_p) / (E_g + E_f - E_p - E_r) / 1.0
                                     phSum += ME
                                 end
                             end
@@ -757,7 +757,7 @@ function HFMBPT_Density(Params::Vector{Any},Orb::Vector{NOrb},Orb_NN::NNOrb,N_Pa
                                 paSum = 0.0
                                 if (rem(l_h + l_g, 2) == rem(l_q + l_a, 2)) && (rem(l_p + l_q + l_h + l_g, 2) == rem(l_a + l_p, 2)) && (j_a == j_p) && (l_a == l_p)
                                     ME = 2.0 * Float64(2*J + 1) / Float64(j_p + 1) * V2B(a_q,a_p,a_g,a_h,J,0,VNN_res.pn,Orb,Orb_NN) *
-                                            V2B(a_g,a_h,a_q,a_a,J,0,VNN_res.pn,Orb,Orb_NN) / (E_h + E_g - E_p - E_q) / (E_h + E_g - E_a - E_q) / 4.0
+                                            V2B(a_g,a_h,a_q,a_a,J,0,VNN_res.pn,Orb,Orb_NN) / (E_h + E_g - E_p - E_q) / (E_h + E_g - E_a - E_q) / 1.0
                                     paSum += ME
                                 end
                                 dnRho[a_p,a_a] += paSum
@@ -801,7 +801,7 @@ function HFMBPT_Density(Params::Vector{Any},Orb::Vector{NOrb},Orb_NN::NNOrb,N_Pa
                                 chSum = 0.0
                                 if (rem(l_g + l_c, 2) == rem(l_q + l_p, 2)) && (rem(l_p + l_q + l_h + l_g, 2) == rem(l_h + l_c, 2)) && (j_c == j_h) && (l_c == j_h)
                                     ME = - 2.0 * Float64(2*J + 1) / Float64(j_h + 1) * V2B(a_q,a_p,a_g,a_h,J,0,VNN_res.pn,Orb,Orb_NN) *
-                                            V2B(a_g,a_c,a_q,a_p,J,0,VNN_res.pn,Orb,Orb_NN) / (E_h + E_g - E_p - E_q) / (E_c + E_g - E_p - E_q) / 4.0
+                                            V2B(a_g,a_c,a_q,a_p,J,0,VNN_res.pn,Orb,Orb_NN) / (E_h + E_g - E_p - E_q) / (E_c + E_g - E_p - E_q) / 1.0
                                     chSum += ME
                                 end
                                 dnRho[a_c,a_h] += chSum

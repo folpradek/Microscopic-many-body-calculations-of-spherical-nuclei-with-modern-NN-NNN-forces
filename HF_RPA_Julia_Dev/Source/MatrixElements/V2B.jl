@@ -332,7 +332,7 @@ function V2B_Read(Int_File::String,Params::Vector{Any},Orb::Vector{NOrb})
                             Amp = HbarOmega / sqrt(Float64(1 + KroneckerDelta(a,b)) * Float64(1 + KroneckerDelta(c,d)))
                             Amp_2 = 1.0 / sqrt(Float64(1 + KroneckerDelta(a,b)) * Float64(1 + KroneckerDelta(c,d)))
                             T_antisym = (Amp * T2B(Orb,a,b,c,d,J) + Amp_2 * (KroneckerDelta(b,d) * T[a,c] + KroneckerDelta(a,c) * T[b,d])
-                                        - Float64((-1)^(div(j_c + j_d,2) - J)) * Amp_2 * (Amp * T2B(Orb,a,b,d,c,J) + (Float64(KroneckerDelta(b,c)) *
+                                        - Float64((-1)^(div(j_c + j_d,2) - J)) * (Amp * T2B(Orb,a,b,d,c,J) + Amp_2 * (Float64(KroneckerDelta(b,c)) *
                                         T[a,d] + Float64(KroneckerDelta(a,d)) * T[b,c]))) / Float64(A)
                         end
                         ME =  T_antisym * sqrt(Float64(1 + KroneckerDelta(a,b)) * Float64(1 + KroneckerDelta(c,d)))

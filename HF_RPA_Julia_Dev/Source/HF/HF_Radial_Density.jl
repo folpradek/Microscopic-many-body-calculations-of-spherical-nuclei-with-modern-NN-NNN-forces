@@ -213,7 +213,8 @@ end
 function nConvolution(x::Float64,r::Float64,nR_CMS::Float64)
     r_p = sqrt(abs(0.4828 - 0.038664 + nR_CMS + 0.5 * (197.326980 / 939.565346)^2))
     r_m = sqrt(abs(0.4828 + 0.038664 + nR_CMS + 0.5 * (197.326980 / 939.565346)^2))
-    rho = x / (r * sqrt(pi)) * ((exp(-((r-x)/r_p)^2) / r_p - exp(-((r+x)/r_m)^2)) / r_m)
+    rho = x / (r * sqrt(pi)) * ((exp(-((r-x)/r_p)^2) - exp(-((r+x)/r_p)^2)) / r_p -
+                                (exp(-((r-x)/r_m)^2) - exp(-((r+x)/r_m)^2)) / r_m)
     return rho
 end
 
@@ -239,7 +240,7 @@ function HF_Radial_ChDensity_Grid(Params::Vector{Any},Orb::Vector{NOrb},pU::Matr
     nRho = nU' * nRho * nU
 
     pR_CMS = R_CMS[1] + R_CMS[2]
-    nR_CMS = R_CMS[1] + R_CMS[2]
+    nR_CMS = R_CMS[3] + R_CMS[4]
 
     # Preallocate charged densitiy grid ...
     N_Sampling = 10000
@@ -263,8 +264,8 @@ function HF_Radial_ChDensity_Grid(Params::Vector{Any},Orb::Vector{NOrb},pU::Matr
                 j_k = Orb[k].j
                 n_k = Orb[k].n
                 if (j_a == j_k) && (l_a == l_k)
-                    pPsi = Psi_rad_LHO(r+pR_CMS,n_k,l_k,nu_proton) * pU[k,a]
-                    nPsi = Psi_rad_LHO(r+nR_CMS,n_k,l_k,nu_neutron) * nU[k,a]
+                    pPsi = Psi_rad_LHO(r,n_k,l_k,nu_proton) * pU[k,a]
+                    nPsi = Psi_rad_LHO(r,n_k,l_k,nu_neutron) * nU[k,a]
                     pRad += pPsi
                     nRad += nPsi
                 end
@@ -272,7 +273,7 @@ function HF_Radial_ChDensity_Grid(Params::Vector{Any},Orb::Vector{NOrb},pU::Matr
             # Spin-Orbit interaction matrix element ...
             SO = Float64(l_a * KroneckerDelta(j_a,2*l_a+1) - (l_a+1) * KroneckerDelta(j_a,2*l_a-1))
             chME = (k_n /(m_n)^2 * nRho[a,a] * nRad^2 + k_p /(m_p)^2 * pRho[a,a] * pRad^2) *
-                    (HbarC)^2 * SO * (Float64(j_a) + 1.0)^2 / Float64(Z)
+                    (HbarC)^2 * SO * (Float64(j_a) + 1.0) / Float64(Z)
             chSum += chME
         end
         chME = Fold_pRho(r,r_grid,pRho_rad,pR_CMS)
@@ -287,7 +288,7 @@ function HF_Radial_ChDensity_Grid(Params::Vector{Any},Orb::Vector{NOrb},pU::Matr
         l_a = Orb[a].l
         j_a = Orb[a].j
         SO = Float64(l_a * KroneckerDelta(j_a,2*l_a+1) - (l_a+1) * KroneckerDelta(j_a,2*l_a-1))
-        kME = (HbarC)^2 * (k_p / m_p^2 * pRho[a,a] + k_n / m_n^2 * nRho[a,a]) * (Float64(j_a) + 1.0)^2 * SO / (4.0 * π * Float64(Z))
+        kME = (HbarC)^2 * (k_p / m_p^2 * pRho[a,a] + k_n / m_n^2 * nRho[a,a]) * (Float64(j_a) + 1.0) * SO / (4.0 * π * Float64(Z))
         kR2 += kME
     end
 
@@ -310,7 +311,7 @@ function HF_Radial_Export(Params::Vector{Any},Rho_Grid::Vector{Vector{Float64}})
     # Export r_grid radius & pRho, nRho, chRho HF mean-field densities ...
     Density_File_name = "IO/" * Output_File * "/Densities/HF_Radial_Densities.dat"
     open(Density_File_name, "w") do Export_File
-        writedlm(Export_File, hcat(Rho_Grid[1], Rho_Grid[2], Rho_Grid[3], Rho_Grid[3]), "\t")
+        writedlm(Export_File, hcat(Rho_Grid[1], Rho_Grid[2], Rho_Grid[3], Rho_Grid[4]), "\t")
     end
     return
 end

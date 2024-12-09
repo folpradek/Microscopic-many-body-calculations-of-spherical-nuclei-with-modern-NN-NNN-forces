@@ -36,8 +36,8 @@ function HF_RPA_Collectivity(Params::Vector{Any},N_nu::Matrix{Int64},X_TDA::Matr
                         sSum_RPA += ME
                     end
                 end
-                s_TDA_JP[ph] = sSum_TDA * N_ph / log(N_ph)
-                s_RPA_JP[ph] = sSum_RPA * N_ph / log(N_ph)
+                s_TDA_JP[ph] = sSum_TDA / log(N_ph)
+                s_RPA_JP[ph] = sSum_RPA / log(N_ph)
             end
             s_TDA[J+1,P] = s_TDA_JP
             s_RPA[J+1,P] = s_RPA_JP

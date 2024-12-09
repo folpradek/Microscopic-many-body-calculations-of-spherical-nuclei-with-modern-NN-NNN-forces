@@ -25,7 +25,7 @@
 #
 #'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-include("Source/HF_RPA_Import.jl")
+include("Source/Import_Module.jl")
 using .HF_RPA_Module, BenchmarkTools
 
 function HF_main()
@@ -39,6 +39,10 @@ function HF_main()
     RPA_Input_Path = "IO/A16_Z8_hw16.0_Nmax3_N2max6_N3max9_CMS1+2B"
     RPA_Calc_Params = Any[16, 8, 16.0, 3, true, [0.0, 50.0, 0.5], [0.0, 50.0, 3.0]]
     HF_RPA_Solver(RPA_Input_Path, RPA_Calc_Params)
+
+    RPA_Input_Path = "IO/A16_Z8_hw16.0_Nmax3_N2max6_N3max9_CMS1+2B"
+    RPA_Calc_Params = Any[16, 8, 16.0, 3, true, [0.0, 50.0, 0.5], [0.0, 50.0, 3.0]]
+    #HF_ERPA_Solver(RPA_Input_Path, RPA_Calc_Params)
 
 end
 
