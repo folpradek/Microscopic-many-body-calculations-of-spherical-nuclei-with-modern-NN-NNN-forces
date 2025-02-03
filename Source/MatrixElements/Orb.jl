@@ -280,7 +280,6 @@ function Orbitals_Export(Params::Vector{Any},Orb::Vector{NOrb})
                   "\t" * string(pSPE[a]) * "\t" * string(nSPE[a])
             println(Export_File, Row)
         end
-    
     end
     
     println("\nExported HF basis s.p. orbitals in human-readable format ...")

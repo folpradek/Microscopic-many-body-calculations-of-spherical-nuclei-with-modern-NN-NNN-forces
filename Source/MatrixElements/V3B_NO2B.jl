@@ -157,12 +157,13 @@ function V3B_NO2B_Read(Int_File::String,Params::Vector{Any},Orb::Vector{NOrb})
     N_3max = Params[4]
     a_max = div((N_max+1)*(N_max+2),2)
 
-    println("\nPreparing 3-body NNN interaction array...")
+    println("\nPreparing 3-body NNN interaction array ...")
     VNNN, Orb_NNN = V3B_NO2B_Ini(N_max,N_2max,N_3max,Orb)
 
+    println("\nPrecounting # of 3-body NNN interaction matrix elements ...")
     N_Chunk_skip = V3B_NO2B_Count(N_max,N_2max,N_3max,Orb)
-    println("\nReading 3-body NO2B NNN interaction file...")
 
+    println("\nReading 3-body NO2B NNN interaction file. ..")
     @inbounds Threads.@threads for a in 1:a_max
         n_a = Orb[a].n
         l_a = Orb[a].l

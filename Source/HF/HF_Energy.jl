@@ -45,7 +45,6 @@ function HF_Energy(Params::Vector{Any},pRho::Matrix{Float64},nRho::Matrix{Float6
                                         @views E_HF_partial[thread_id][] += Hat * pRho_ad * nRho_be * V2B(a,b,d,e,J,0,VNN.pn,Orb,Orb_NN)
 
                                     end
-
                                     
                                     # 3-body NNN interaction
                                     @inbounds for c = 1:a_max
