@@ -2,27 +2,27 @@
 
 Repository with all codes & scripts related to my master thesis taken at CUNI Faculty of Mathematics & Physics in Prague at Insitute of Particle & Nuclear Physics (IPNP). Work is supervised by doc. Mgr. František Knapp PhD. from IPNP.
 
-At present time all the scripts use Julia language. _Code should be work fine on all distributions v >= 1.4_
+At present time all the scripts use Julia language. Code should be work fine on all distributions v $\geq$ 1.4. The code uses interaction matrix elements generated in binary format by _NuHamil_ code. $\quad$ https://github.com/Takayuki-Miyagi/NuHamil-public
 
 <br/>
 
-Most of the code is tested & produces reasonable results. There may be some minor tweaks though.
+Most of the code is tested & produces reasonable results. There may be some minor flaws though.
 
 <br/>
 
 ## **Running code requires these Julia packages:**
 
-* _DelimitedFiles_
+* _DelimitedFiles_  $\quad$ https://github.com/JuliaData/DelimitedFiles.jl
 
-* _CGCoefficient_
+* _CGCoefficient_ $\quad$ https://github.com/0382/CGcoefficient.jl
 
-* _LinearAlgebra_
+* _LinearAlgebra_ $\quad$ https://github.com/JuliaLang/LinearAlgebra.jl
 
 ## **Repository includes:**
 
 * Spherical Hartree-Fock solver for Even-Even nuclei.
 
-* HF based Leading Order Many-Body Perturbation Theory calculation.
+* Spherical HF based Leading Order Many-Body Perturbation Theory calculations of Ground State Energy, Radii & Density corrections.
 
 * Spherical Hartree-Fock (Extended) Random-Phase Approximation & Tamm-Dancoff Approximation solver for Even-Even nuclei.
 
@@ -36,4 +36,4 @@ Later, when most of code is finished & I have more time, I will add more detaile
 
 <br/>
 
-Note there are small configuration space interactions files binaries included (DN2LOGO394 chiral potential, N_max = 3, N_3max = 9, hw = 16 MeV). In principle, you can run & play with the code in this small test space.
+Note there are small configuration space interactions files binaries included ($\Delta \mathrm{N^{2}LO_{GO}} (394)$ chiral potential, $N_{\mathrm{max}} = 3$, $N_{\mathrm{3max}} = 9$, $\hbar \omega = 16$ MeV). In principle, you can run & play with the code in this small test space.
