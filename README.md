@@ -14,7 +14,7 @@ Most of the code is tested & produces reasonable results. There may be some mino
 
 * _DelimitedFiles_  $\quad$ https://github.com/JuliaData/DelimitedFiles.jl
 
-* _CGCoefficient_ $\quad$ https://github.com/0382/CGcoefficient.jl
+* _CGCoefficient_ $\quad$ https://github.com/0382/CGcoefficient.jl $\quad$ **Requires version v0.2.9**
 
 * _LinearAlgebra_ $\quad$ https://github.com/JuliaLang/LinearAlgebra.jl
 
