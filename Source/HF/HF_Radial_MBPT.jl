@@ -31,32 +31,20 @@ function HFMBPT_Radial_Density(Params::Vector{Any},Orb::Vector{NOrb},dpRho::Matr
     println("\nPreparing MBPT(3) corrections to densities & radii ...")
 
     # Make HF density operator ...
-    pRho, nRho = HF_Density_Operator(Orb,a_max,pU,nU)
+    pRho, nRho = zeros(Float64,a_max,a_max), zeros(Float64,a_max,a_max)
 
-    # Transform MBPT(3) correction to densities to the HF basis ...
-    pRho = pU' * pRho * pU
-    nRho = nU' * nRho * nU
+    @inbounds for a in 1:a_max
+        pRho[a,a] = Orb[a].pO
+        nRho[a,a] = Orb[a].nO
+    end
 
     # Evaluate point-proton & point-neutron radii - non-perturbative HF ...
     Rho_Grid = HF_Radial_Density_Grid(Params,Orb,pU,nU)
     pR2_HF, nR2_HF = HFMBPT_NonPT_Radial_Radii(Rho_Grid[1],Rho_Grid[2],Rho_Grid[3])
 
     # Include MBPT(3) density perturbation ...
-    @inbounds for a in 1:a_max
-        j_a = Orb[a].j
-        l_a = Orb[a].l
-        @inbounds for b in 1:a_max
-            j_b = Orb[b].j
-            l_b = Orb[b].l
-            if j_a == j_b && l_a == l_b
-                dpRho[a,b] = dpRho[a,b] / (Float64(j_a) + 1.0)
-                dnRho[a,b] = dnRho[a,b] / (Float64(j_a) + 1.0)
-            end
-        end
-    end
-
-    pRho = pRho .+ dpRho
-    nRho = nRho .+ dnRho
+    pRho .= pRho .+ dpRho
+    nRho .= nRho .+ dnRho
 
     # Calculation of 1-body & 2-body CMS & Darwin-Foldy corrections ...
     if CMS == "CMS1+2B" || CMS == "CMS2B"
@@ -65,7 +53,7 @@ function HFMBPT_Radial_Density(Params::Vector{Any},Orb::Vector{NOrb},dpRho::Matr
         R_CMS = [0.0, 0.0, 0.0, 0.0]
     end
 
-    # Evaluate LO MBPT(3) correcitons to radii ...
+    # Evaluate LO MBPT(3) corrections to radii ...
     pR2_MBPT, nR2_MBPT = HFMBPT_Radial_Correction(Params,Orb,pU,nU,dpRho,dnRho)
 
     # Evaluate radial densities on a grid ...
@@ -288,8 +276,8 @@ function HFMBPT_Radial_Density_Grid(Params::Vector{Any},Orb::Vector{NOrb},pU::Ma
                                 j_l = Orb[l].j
                                 n_l = Orb[l].n
                                 if (j_b == j_l) && (l_b == l_l)
-                                    pPsi = Psi_rad_LHO(r,n_k,l_k,nu_proton) * Psi_rad_LHO(r,n_l,l_l,nu_proton) * pU[k,a]* pU[l,b]
-                                    nPsi = Psi_rad_LHO(r,n_k,l_k,nu_neutron) * Psi_rad_LHO(r,n_l,l_l,nu_neutron) * nU[k,a]* nU[l,b]
+                                    pPsi = Psi_rad_LHO(r,n_k,l_k,nu_proton) * Psi_rad_LHO(r,n_l,l_l,nu_proton) * pU[k,a] * pU[l,b]
+                                    nPsi = Psi_rad_LHO(r,n_k,l_k,nu_neutron) * Psi_rad_LHO(r,n_l,l_l,nu_neutron) * nU[k,a] * nU[l,b]
                                     pRad += pPsi
                                     nRad += nPsi
                                 end
