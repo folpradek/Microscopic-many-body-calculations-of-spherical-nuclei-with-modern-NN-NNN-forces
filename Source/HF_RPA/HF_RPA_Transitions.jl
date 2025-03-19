@@ -289,7 +289,7 @@ function HF_RPA_Transition_Densities_Export(Params::Vector{Any},Orb::Vector{NOrb
     # Calc params ...
     J = 1
     P = 2
-    N_nu_max = 10
+    N_nu_max = 15
     N_ph = N_nu[J+1,P]
 
     # Basic constants ...
@@ -332,7 +332,7 @@ function HF_RPA_Transition_Densities_Export(Params::Vector{Any},Orb::Vector{NOrb
     nRho_RPA_rad = Matrix{Float64}(undef,N_Sampling,N_nu_max)
 
     # Evaluate radial densities on grid ...
-    @inbounds for i in 1:N_Sampling
+    @inbounds Threads.@threads for i in 1:N_Sampling
         r = r_grid[i]
         @inbounds for nu in 1:N_nu_max
             pRad, nRad = 0.0, 0.0

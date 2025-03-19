@@ -264,7 +264,7 @@ function HF_RPA_Radial_ChDensity_Grid(Params::Vector{Any},Orb::Vector{NOrb},pU::
         l_a = Orb[a].l
         j_a = Orb[a].j
         SO = Float64(l_a * KroneckerDelta(j_a,2*l_a+1) - (l_a+1) * KroneckerDelta(j_a,2*l_a-1))
-        kME = (HbarC)^2 * (k_p / m_p^2 * pRho[a,a] + k_n / m_n^2 * nRho[a,a]) * (Float64(j_a) + 1.0) * SO / (4.0 * π * Float64(Z))
+        kME = (HbarC)^2 * (k_p / m_p^2 * pRho[a,a] + k_n / m_n^2 * nRho[a,a]) * (Float64(j_a) + 1.0)^2 * SO / (4.0 * π * Float64(Z))
         kR2 += kME
     end
 
