@@ -38,6 +38,8 @@ function HFMBPT_Radial_Density(Params::Vector{Any},Orb::Vector{NOrb},dpRho::Matr
         nRho[a,a] = Orb[a].nO
     end
 
+    pRho_HF, nRho_HF = deepcopy(pRho), deepcopy(nRho)
+
     # Evaluate point-proton & point-neutron radii - non-perturbative HF ...
     Rho_Grid = HF_Radial_Density_Grid(Params,Orb,pU,nU)
     pR2_HF, nR2_HF = HFMBPT_NonPT_Radial_Radii(Rho_Grid[1],Rho_Grid[2],Rho_Grid[3])
@@ -52,6 +54,9 @@ function HFMBPT_Radial_Density(Params::Vector{Any},Orb::Vector{NOrb},dpRho::Matr
     else
         R_CMS = [0.0, 0.0, 0.0, 0.0]
     end
+
+    # HF-MBPT(2) determinant overlap ...
+    HFMBPT_Overlap(Params,Orb,pRho,nRho,pRho_HF,nRho_HF)
 
     # Evaluate LO MBPT(3) corrections to radii ...
     pR2_MBPT, nR2_MBPT = HFMBPT_Radial_Correction(Params,Orb,pU,nU,dpRho,dnRho)
@@ -378,7 +383,7 @@ function HFMBPT_Radial_ChDensity_Grid(Params::Vector{Any},Orb::Vector{NOrb},pU::
             j_b = Orb[b].j
             if j_a == j_b && l_a == l_b
                 SO = Float64(l_a * KroneckerDelta(j_a,2*l_a+1) - (l_a+1) * KroneckerDelta(j_a,2*l_a-1))
-                kME = (HbarC)^2 * (k_p / m_p^2 * pRho[a,b] + k_n / m_n^2 * nRho[a,b]) * (Float64(j_a) + 1.0) * SO / (4.0 * π * Float64(Z))
+                kME = (HbarC)^2 * (k_p / m_p^2 * pRho[a,b] + k_n / m_n^2 * nRho[a,b]) * (Float64(j_a) + 1.0)^2 * SO / (4.0 * π * Float64(Z))
                 kR2 += kME
             end
         end
@@ -419,26 +424,26 @@ function HFMBPT_Radial_Summary(Params::Vector{Any},pR2::Float64,nR2::Float64,chR
     Output_File = Params[13]
 
     println("\nResulting point-proton, charged & point-neutron radii from HF-MBPT(3) ...")
-    println("\nr_p  = " * string(round(sqrt(pR2 + R_CMS[1] + R_CMS[2] + 0.5 * (197.326980 / 938.272013)^2), sigdigits=6)) * " fm \t\t ... \t Density calculated MBPT(3) proton radius")
-    println("r_ch = " * string(round(sqrt(chR2 + R_CMS[1] + R_CMS[2] + 0.5 * (197.326980 / 938.272013)^2), sigdigits=6)) * " fm \t\t ... \t Density calculated MBPT(3) charged radius")
-    println("r_n  = " * string(round(sqrt(nR2 + R_CMS[3] + R_CMS[4] + 0.5 * (197.326980 / 939.565346)^2), sigdigits=6)) * " fm \t\t ... \t Density calculated MBPT(3) neutron radius")
-    println("\nr_p  = " * string(round(sqrt(pR2_HF + R_CMS[1] + R_CMS[2] + 0.5 * (197.326980 / 938.272013)^2 + pR2_MBPT), sigdigits=6)) * " fm \t\t ... \t Calculated MBPT(3) proton radius")
-    println("r_n  = " * string(round(sqrt(nR2_HF + R_CMS[3] + R_CMS[4] + 0.5 * (197.326980 / 939.565346)^2 + nR2_MBPT), sigdigits=6)) * " fm \t\t ... \t Calculated MBPT(3) neutron radius")
+    println("\nr_p  = " * string(round(sqrt(pR2 + R_CMS[1] + R_CMS[2] + 0.5 * (197.326980 / 938.272013)^2), sigdigits=6)) * " fm \t\t ... \t Density calculated MBPT(2) proton radius")
+    println("r_ch = " * string(round(sqrt(chR2 + R_CMS[1] + R_CMS[2] + 0.5 * (197.326980 / 938.272013)^2), sigdigits=6)) * " fm \t\t ... \t Density calculated MBPT(2) charged radius")
+    println("r_n  = " * string(round(sqrt(nR2 + R_CMS[3] + R_CMS[4] + 0.5 * (197.326980 / 939.565346)^2), sigdigits=6)) * " fm \t\t ... \t Density calculated MBPT(2) neutron radius")
+    println("\nr_p  = " * string(round(sqrt(pR2_HF + R_CMS[1] + R_CMS[2] + 0.5 * (197.326980 / 938.272013)^2 + pR2_MBPT), sigdigits=6)) * " fm \t\t ... \t Calculated MBPT(2) proton radius")
+    println("r_n  = " * string(round(sqrt(nR2_HF + R_CMS[3] + R_CMS[4] + 0.5 * (197.326980 / 939.565346)^2 + nR2_MBPT), sigdigits=6)) * " fm \t\t ... \t Calculated MBPT(2) neutron radius")
     println("\nFor more details see HF_Summary.dat file ...")
 
     # Export resulsts & contributions to radii ...
-    println("\nExporting information on HF-MBPT(3) radii ...")
+    println("\nExporting information on HF-MBPT(2) radii ...")
     Summary_File =  open(string("IO/", Output_File, "/HF/HF_Summary.dat"), "a")
-        println(Summary_File, "\nr_p  = " * string(round(sqrt(pR2 + R_CMS[1] + R_CMS[2] + 0.5 * (197.326980 / 938.272013)^2), sigdigits=6)) * " fm \t\t ... \t Density calculated MBPT(3) proton radius")
-        println(Summary_File, "r_ch = " * string(round(sqrt(chR2 + R_CMS[1] + R_CMS[2] + 0.5 * (197.326980 / 938.272013)^2), sigdigits=6)) * " fm \t\t ... \t Density calculated MBPT(3) charged radius")
-        println(Summary_File, "r_n  = " * string(round(sqrt(nR2 + R_CMS[3] + R_CMS[4] + 0.5 * (197.326980 / 939.565346)^2), sigdigits=6)) * " fm \t\t ... \t Density calculated MBPT(3) neutron radius")
-        println(Summary_File, "\nr_p  = " * string(round(sqrt(pR2_HF + R_CMS[1] + R_CMS[2] + 0.5 * (197.326980 / 938.272013)^2 + pR2_MBPT), sigdigits=6)) * " fm \t\t ... \t Calculated MBPT(3) proton radius")
-        println(Summary_File, "r_n  = " * string(round(sqrt(nR2_HF + R_CMS[3] + R_CMS[4] + 0.5 * (197.326980 / 939.565346)^2 + nR2_MBPT), sigdigits=6)) * " fm \t\t ... \t Calculated MBPT(3) neutron radius")
-        println(Summary_File, "\nr_p  = " * string(round(sqrt(pR2), sigdigits=6)) * " fm \t\t ... \t Density calculated MBPT(3) uncorrected point-proton radius")
-        println(Summary_File, "r_ch = " * string(round(sqrt(chR2), sigdigits=6)) * " fm \t\t ... \t Density calculated MBPT(3) uncorrected charged radius")
-        println(Summary_File, "r_n  = " * string(round(sqrt(nR2), sigdigits=6)) * " fm \t\t ... \t Density calculated MBPT(3) uncorrected point-neutron radius")
-        println(Summary_File, "\nr_p  = " * string(round(sqrt(pR2_HF + pR2_MBPT), sigdigits=6)) * " fm \t\t ... \t Calculated MBPT(3) uncorrected point-proton radius")
-        println(Summary_File, "r_n  = " * string(round(sqrt(nR2_HF + nR2_MBPT), sigdigits=6)) * " fm \t\t ... \t Calculated MBPT(3) uncorrected point-neutron radius")
+        println(Summary_File, "\nr_p  = " * string(round(sqrt(pR2 + R_CMS[1] + R_CMS[2] + 0.5 * (197.326980 / 938.272013)^2), sigdigits=6)) * " fm \t\t ... \t Density calculated MBPT(2) proton radius")
+        println(Summary_File, "r_ch = " * string(round(sqrt(chR2 + R_CMS[1] + R_CMS[2] + 0.5 * (197.326980 / 938.272013)^2), sigdigits=6)) * " fm \t\t ... \t Density calculated MBPT(2) charged radius")
+        println(Summary_File, "r_n  = " * string(round(sqrt(nR2 + R_CMS[3] + R_CMS[4] + 0.5 * (197.326980 / 939.565346)^2), sigdigits=6)) * " fm \t\t ... \t Density calculated MBPT(2) neutron radius")
+        println(Summary_File, "\nr_p  = " * string(round(sqrt(pR2_HF + R_CMS[1] + R_CMS[2] + 0.5 * (197.326980 / 938.272013)^2 + pR2_MBPT), sigdigits=6)) * " fm \t\t ... \t Calculated MBPT(2) proton radius")
+        println(Summary_File, "r_n  = " * string(round(sqrt(nR2_HF + R_CMS[3] + R_CMS[4] + 0.5 * (197.326980 / 939.565346)^2 + nR2_MBPT), sigdigits=6)) * " fm \t\t ... \t Calculated MBPT(2) neutron radius")
+        println(Summary_File, "\nr_p  = " * string(round(sqrt(pR2), sigdigits=6)) * " fm \t\t ... \t Density calculated MBPT(2) uncorrected point-proton radius")
+        println(Summary_File, "r_ch = " * string(round(sqrt(chR2), sigdigits=6)) * " fm \t\t ... \t Density calculated MBPT(2) uncorrected charged radius")
+        println(Summary_File, "r_n  = " * string(round(sqrt(nR2), sigdigits=6)) * " fm \t\t ... \t Density calculated MBPT(2) uncorrected point-neutron radius")
+        println(Summary_File, "\nr_p  = " * string(round(sqrt(pR2_HF + pR2_MBPT), sigdigits=6)) * " fm \t\t ... \t Calculated MBPT(2) uncorrected point-proton radius")
+        println(Summary_File, "r_n  = " * string(round(sqrt(nR2_HF + nR2_MBPT), sigdigits=6)) * " fm \t\t ... \t Calculated MBPT(2) uncorrected point-neutron radius")
         println(Summary_File, "\nDetails on radii corrections:\n")
         println(Summary_File, "r_p2_cms1^2 = " * string(round(R_CMS[1], digits=6)) * "\t fm^2")
         println(Summary_File, "r_p2_cms2^2 = " * string(round(R_CMS[2], digits=6)) * "\t fm^2")
@@ -451,5 +456,36 @@ function HFMBPT_Radial_Summary(Params::Vector{Any},pR2::Float64,nR2::Float64,chR
         println(Summary_File, "r_nDF2^2   = " * string(round(0.5 * (197.326980 / 939.565346)^2, sigdigits=7)) * "\t fm^2")
     close(Summary_File)
 
-    println("\nHF-MBPT(3) radial densities and radii exported ...")
+    println("\nHF-MBPT(2) radial densities and radii exported ...")
+end
+
+function HFMBPT_Overlap(Params::Vector{Any},Orb::Vector{NOrb},pRho::Matrix{Float64},nRho::Matrix{Float64},pRho_HF::Matrix{Float64},nRho_HF::Matrix{Float64})
+    # Read parameters ...
+    A = Params[5]
+    Z = Params[6]
+    N_max = Params[7]
+    a_max = div((N_max + 1)*(N_max + 2),2)
+    Output_File = Params[13]
+    
+    # Initialize traces ...
+    Overlap = 0.0
+
+    # Calculate overlap ...
+
+    pProjection, nProjection = pRho * pRho_HF, nRho * nRho_HF
+
+    @inbounds for a in 1:a_max
+        Overlap += pProjection[a,a] * Float64(Orb[a].j + 1) + nProjection[a,a] * Float64(Orb[a].j + 1)
+    end
+
+    Overlap = Overlap / A
+
+    println("\nHF-MBPT(2) slater determinant overlap with HF determinant = " * string(round(Overlap * 100.0, digits = 5)) * " %")
+
+    println("\nExporting information on HF-MBPT(2) Slater determinant over with HF determinant ...")
+    Summary_File =  open(string("IO/", Output_File, "/HF/HF_Summary.dat"), "a")
+        println(Summary_File, "\nOverlap = " * string(round(Overlap, digits = 6)) * "\t ... Overlap of HF and HF-MBPT(2) determinants...")
+    close(Summary_File)
+
+    return
 end
