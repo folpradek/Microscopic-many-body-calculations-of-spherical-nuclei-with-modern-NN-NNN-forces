@@ -125,6 +125,19 @@ function HF_ERPA_0_Diagonalize(Params::Vector{Any},A::Matrix{Matrix{Float64}},B:
             end
         end
 
+        # Removal of complex amplitudes for OBDM iteration ...
+        @inbounds for nu in 1:N_ph
+            Y2Sum = 0.0
+            @inbounds for ph in 1:N_ph
+                Y2Sum += abs(Y_RPA_JP[ph,nu])^2
+            end
+            if Y2Sum > 0.501
+                @inbounds for ph in 1:N_ph
+                    X_RPA_JP[ph,nu], Y_RPA_JP[ph,nu] = ComplexF64(0.0), ComplexF64(0.0)
+                end
+            end
+        end
+
         E_RPA[J+1,P] = E_RPA_JP
         X_RPA[J+1,P] = X_RPA_JP
         Y_RPA[J+1,P] = Y_RPA_JP
@@ -258,6 +271,19 @@ function HF_ERPA_I_Diagonalize(Params::Vector{Any},A::Matrix{Matrix{Float64}},B:
                 @inbounds for ph in 1:N_ph
                     X_RPA_JP[ph,nu] = X_RPA_JP[ph,nu] * RPA_norm
                     Y_RPA_JP[ph,nu] = Y_RPA_JP[ph,nu] * RPA_norm
+                end
+            end
+        end
+
+        # Removal of complex amplitudes for OBDM iteration ...
+        @inbounds for nu in 1:N_ph
+            Y2Sum = 0.0
+            @inbounds for ph in 1:N_ph
+                Y2Sum += abs(Y_RPA_JP[ph,nu])^2
+            end
+            if Y2Sum > 0.501
+                @inbounds for ph in 1:N_ph
+                    X_RPA_JP[ph,nu], Y_RPA_JP[ph,nu] = ComplexF64(0.0), ComplexF64(0.0)
                 end
             end
         end

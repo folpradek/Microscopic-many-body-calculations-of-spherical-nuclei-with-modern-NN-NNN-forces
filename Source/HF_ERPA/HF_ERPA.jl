@@ -1,4 +1,4 @@
-function HF_ERPA(Params::Vector{Any},Orb::Vector{NOrb},Orb_NN::NNOrb,VNN::NNInt)
+function HF_ERPA(Int_Params::Vector{Any},NN_File::String,NNN_File::String,Params::Vector{Any},Orb::Vector{NOrb},Orb_NN::NNOrb,VNN::NNInt)
     # Calculation parameters review ...
     # A, Z, HbarOmega, N_max = Params[1], Params[2], Params[3], Params[4]
     # N_2max = 2*N_max
@@ -22,7 +22,7 @@ function HF_ERPA(Params::Vector{Any},Orb::Vector{NOrb},Orb_NN::NNOrb,VNN::NNInt)
     @time N_nu, Orb_Phonon = HF_ERPA_Phonon_Count(Params,N_Phonon,Phonon,Particle,Hole)
 
     # Start ERPA iteration ...
-    @time E_RPA, X_RPA, Y_RPA, pRho, nRho = HF_ERPA_Iteration(Params,N_nu,Orb_Phonon,Phonon,N_Particle,Particle,N_Hole,Hole,Orb,Orb_NN,VNN,TrOp)
+    @time E_RPA, X_RPA, Y_RPA, pRho, nRho = HF_ERPA_Iteration(Int_Params,NN_File,NNN_File,Params,N_nu,Orb_Phonon,Phonon,N_Particle,Particle,N_Hole,Hole,Orb,Orb_NN,VNN,TrOp)
 
     # Elmag. reduced multipole operators ...
     @time rM = HF_ERPA_rM(Params,N_nu,Orb_Phonon,Phonon,Particle,Hole,X_RPA,Y_RPA,TrOp,pRho,nRho)

@@ -1,4 +1,4 @@
-function HF_ERPA_Solver(Input_File::String,Calc_Params::Vector{Any})
+function HF_ERPA_Solver(Int_Params::Vector{Any},NN_File::String,NNN_File::String,Input_File::String,Calc_Params::Vector{Any})
     # Calculation parameters
     Params = Any[]
     for k in 1:length(Calc_Params)
@@ -46,7 +46,7 @@ function HF_ERPA_Solver(Input_File::String,Calc_Params::Vector{Any})
     end
 
     # Make s.p. orbitals - NuHamil ordering convention ...
-    Orb = Make_Orbitals(Params[1],Params[2],Params[4])
+    Orb = Make_Orbitals(Params[1],Params[2],Int_Params[2])
 
     # Import Residual 2-body Interaction ...
     println("\nImporting Residual 2-body interaction ...")
@@ -54,7 +54,7 @@ function HF_ERPA_Solver(Input_File::String,Calc_Params::Vector{Any})
     
     println("\nStarting ERPA calculations ...")
     # Start RPA & TDA calculations ...
-    @time HF_ERPA(Params,Orb,Orb_NN,VNN)
+    @time HF_ERPA(Int_Params,NN_File,NNN_File,Params,Orb,Orb_NN,VNN)
 
     println("\nAll calculations have finished ...\n")
 

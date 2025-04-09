@@ -95,7 +95,7 @@ function HF_ERPA_0_Allocate(Params::Vector{Any},N_nu::Matrix{Int64},Orb_Phonon::
     return A, B
 end
 
-function HF_ERPA_Allocate(Params::Vector{Any},N_nu::Matrix{Int64},Orb_Phonon::Matrix{Vector{Int64}},Phonon::Vector{PhState},Particle::pnSVector,Hole::pnSVector,Orb::Vector{NOrb},Orb_NN::NNOrb,VNN::NNInt,pRho::Matrix{Float64},nRho::Matrix{Float64})
+function HF_ERPA_Allocate(Params::Vector{Any},N_nu::Matrix{Int64},Orb_Phonon::Matrix{Vector{Int64}},Phonon::Vector{PhState},Particle::pnSVector,Hole::pnSVector,Orb::Vector{NOrb},Orb_NN::NNOrb,VNN::NNInt,pRho::Matrix{Float64},nRho::Matrix{Float64},pH::Matrix{Float64},nH::Matrix{Float64})
     # Read calculation parameters ...
     N_max = Params[4]
     N_2max = 2*N_max
@@ -126,13 +126,13 @@ function HF_ERPA_Allocate(Params::Vector{Any},N_nu::Matrix{Int64},Orb_Phonon::Ma
                 ASum = 0.0
                 BSum = 0.0
 
-                if t_ph == t_qg && ph == qg
+                if t_ph == t_qg
                     if t_ph == -1
-                        Amp = 0.5 * (sqrt((pRho[a_h,a_h] - pRho[a_p,a_p]) / (pRho[a_g,a_g] - pRho[a_q,a_q])) + sqrt((pRho[a_g,a_g] - pRho[a_q,a_q]) / (pRho[a_h,a_h] - pRho[a_p,a_p])))
+                        Amp = 0.5 * (sqrt((pRho[a_h,a_h] - pRho[a_p,a_p]) / (pRho[a_g,a_g] - pRho[a_q,a_q])) + sqrt((pRho[a_g,a_g] - pRho[a_q,a_q]) / (pRho[a_h,a_h] - pRho[a_p,a_p]))) * (pH[a_p,a_q] * Float64(KroneckerDelta(a_h,a_g)) - pH[a_h,a_g] * Float64(KroneckerDelta(a_p,a_q)))
                     elseif t_ph == 1
-                        Amp = 0.5 * (sqrt((nRho[a_h,a_h] - nRho[a_p,a_p]) / (nRho[a_g,a_g] - nRho[a_q,a_q])) + sqrt((nRho[a_g,a_g] - nRho[a_q,a_q]) / (nRho[a_h,a_h] - nRho[a_p,a_p])))
+                        Amp = 0.5 * (sqrt((nRho[a_h,a_h] - nRho[a_p,a_p]) / (nRho[a_g,a_g] - nRho[a_q,a_q])) + sqrt((nRho[a_g,a_g] - nRho[a_q,a_q]) / (nRho[a_h,a_h] - nRho[a_p,a_p]))) * (nH[a_p,a_q] * Float64(KroneckerDelta(a_h,a_g)) - nH[a_h,a_g] * Float64(KroneckerDelta(a_p,a_q)))
                     end
-                    ASum += Amp * (E_p - E_h)
+                    ASum += Amp
                 end
 
                 if rem(l_p + l_g, 2) == rem(l_q + l_h, 2)
