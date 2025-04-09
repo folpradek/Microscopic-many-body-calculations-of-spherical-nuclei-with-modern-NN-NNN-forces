@@ -6,15 +6,27 @@ function HF_ERPA_Spur_Ini(N_ph::Int64,Orb_Phonon::Vector{Int64},Phonon::Vector{P
         if t_ph == 1
             Sum = 0.0
             @inbounds for nu in 1:N_ph
-                ME_E1 = TrOp.E1.n[a_p,a_h] * sqrt(nRho[a_h,a_h] - nRho[a_p,a_p]) * conj(X_RPA[J_ph+1,P_ph][ph,nu]) * (X_RPA[J_ph+1,P_ph][ph,nu] + Y_RPA[J_ph+1,P_ph][ph,nu])
-                Sum += ME_E1
+                @inbounds for qg in 1:N_ph
+                    Ind_qg = Orb_Phonon[qg]
+                    q,g,t_qg,J_qg,P_qg,a_q,l_q,j_q,E_q,a_g,l_g,j_g,E_g = Phonon_Ind(Ind_qg,Phonon,Particle,Hole)
+                    if t_qg == t_ph && J_ph == J_qg && P_ph == P_qg
+                        ME_E1 = TrOp.E1.n[a_q,a_g] * sqrt(nRho[a_g,a_g] - nRho[a_q,a_q]) * (conj(Y_RPA[J_ph+1,P_ph][qg,nu]) - conj(X_RPA[J_ph+1,P_ph][qg,nu])) * (X_RPA[J_ph+1,P_ph][ph,nu] - Y_RPA[J_ph+1,P_ph][ph,nu])
+                        Sum += ME_E1
+                    end
+                end
             end
             ph_CMS[ph] = Sum
         elseif t_ph == -1
             Sum = 0.0
             @inbounds for nu in 1:N_ph
-                ME_E1 = TrOp.E1.p[a_p,a_h] * sqrt(pRho[a_h,a_h] - pRho[a_p,a_p]) * conj(X_RPA[J_ph+1,P_ph][ph,nu]) * (X_RPA[J_ph+1,P_ph][ph,nu] + Y_RPA[J_ph+1,P_ph][ph,nu])
-                Sum += ME_E1
+                @inbounds for qg in 1:N_ph
+                    Ind_qg = Orb_Phonon[qg]
+                    q,g,t_qg,J_qg,P_qg,a_q,l_q,j_q,E_q,a_g,l_g,j_g,E_g = Phonon_Ind(Ind_qg,Phonon,Particle,Hole)
+                    if t_qg == t_ph && J_ph == J_qg && P_ph == P_qg
+                        ME_E1 = TrOp.E1.p[a_q,a_g] * sqrt(pRho[a_g,a_g] - pRho[a_q,a_q]) *  (conj(Y_RPA[J_ph+1,P_ph][qg,nu]) - conj(X_RPA[J_ph+1,P_ph][qg,nu])) * (X_RPA[J_ph+1,P_ph][ph,nu] - Y_RPA[J_ph+1,P_ph][ph,nu])
+                        Sum += ME_E1
+                    end
+                end
             end
             ph_CMS[ph] = Sum
         end
@@ -28,8 +40,7 @@ function HF_ERPA_Spur_Ini(N_ph::Int64,Orb_Phonon::Vector{Int64},Phonon::Vector{P
     end
 
     ph_CMS = ph_CMS ./ norm(ph_CMS)
-    return ph_CMS
-    
+    return ph_CMS 
 end
 
 function HF_ERPA_Spur_Ortho(N_ph::Int64,Spur_State::Vector{ComplexF64})

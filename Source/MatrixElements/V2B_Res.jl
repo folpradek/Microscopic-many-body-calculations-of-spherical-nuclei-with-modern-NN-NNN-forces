@@ -66,6 +66,7 @@ function V2B_Res_Density(Params::Vector{Any},Orb::Vector{NOrb},Orb_NN::NNOrb,Orb
                         end
                     end
                     @views VNN.pn[P,J+1][Ind] += pnSum
+                    #@views VNN.pn[P,J+1][Ind] = 0.1 * VNN.pn[P,J+1][Ind]
                 end
             end
 
@@ -111,6 +112,8 @@ function V2B_Res_Density(Params::Vector{Any},Orb::Vector{NOrb},Orb_NN::NNOrb,Orb
                     end
                     @views VNN.pp[P,J+1][Ind] += ppSum
                     @views VNN.nn[P,J+1][Ind] += nnSum
+                    #@views VNN.pp[P,J+1][Ind] = 0.1 * VNN.pp[P,J+1][Ind]
+                    #@views VNN.nn[P,J+1][Ind] = 0.1 * VNN.nn[P,J+1][Ind]
                 end
 
     
