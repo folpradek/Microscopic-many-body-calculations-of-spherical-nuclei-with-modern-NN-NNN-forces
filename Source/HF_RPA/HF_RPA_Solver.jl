@@ -1,62 +1,65 @@
-function HF_RPA_Solver(Input_File::String,Calc_Params::Vector{Any})
-    # Calculation parameters
-    Params = Any[]
-    for k in 1:length(Calc_Params)
-        Params = push!(Params,Calc_Params[k])
-    end
-    Params = push!(Params, Input_File)
-
-    println("Starting RPA (TDA) calculations with residual NO2B NN+NNN interaction")
-    println("\nCalculation data:")
-    println("A = " * string(Params[1]) * " , Z = " * string(Params[2]) * " , HbarOmega = " * string(Params[3]) *
-            " MeV , N_max = " * string(Params[4]) * " , J-scheme LHO basis size = " * string(div((Params[4]+1)*(Params[4]+2),2)) *
-            " , M-scheme LHO basis size = " * string(div((Params[4]+1)*(Params[4]+2)*(Params[4]+3),6)))
-
-    if Threads.nthreads() > 1
-        println("\n_________________________________________________________")
-        println("Multiple active threads detected ...")
-        println("Parallelization report:    Number of active threads = " * string(Threads.nthreads()))
-        println("_________________________________________________________")
-    end
-
-    # Make new directories for results ...
-    if !(isdir(Params[8]))
-        println("\nError! ... No precomputed HF solution is available in given Input_File path ... run HF solver first ...")
-        return
-    end
-    if (isdir(Params[8] * "/RPA"))
-        rm(Params[8] * "/RPA", recursive = true)
-    end
-    mkdir(Params[8] * "/RPA")
-    if !(isdir(Params[8] * "/RPA/Densities"))
-        mkdir(Params[8] * "/RPA/Densities")
-    end
-    if !(isdir(Params[8] * "/RPA/Transitions"))
-        mkdir(Params[8] * "/RPA/Transitions")
-        mkdir(Params[8] * "/RPA/Transitions/E0")
-        mkdir(Params[8] * "/RPA/Transitions/E1")
-        mkdir(Params[8] * "/RPA/Transitions/E2")
-        mkdir(Params[8] * "/RPA/Transitions/E3")
-    end
-    if !(isdir(Params[8] * "/RPA/Spectra"))
-        mkdir(Params[8] * "/RPA/Spectra")
-    end
-    if !(isdir(Params[8] * "/RPA/Amplitudes"))
-        mkdir(Params[8] * "/RPA/Amplitudes")
-    end
+function HF_RPA_solver(Params::Parameters)
     # Make s.p. orbitals - NuHamil ordering convention ...
-    Orb = Make_Orbitals(Params[1],Params[2],Params[4])
+    @time Orb = orbitals_make(Params)
 
-    # Import Residual 2-body Interaction ...
+    # Import Residual 2-body NN interaction ...
     println("\nImporting Residual 2-body interaction ...")
-    @time VNN, Orb_NN = V2B_Res_Import(Params[4],Params[8],Orb)
-    
-    println("\nStarting RPA & TDA calculations ...")
-    # Start RPA & TDA calculations ...
-    @time HF_RPA(Params,Orb,Orb_NN,VNN)
+    @time V_NN, Orb_NN = O2b_import(Params,Orb,"IO/" * Params.Calc.Path * "/Bin/V2B_HF.bin",Make_Orb_NN=true)
 
-    
-    println("\nAll calculations have finished ...\n")
+    # Import LHO -> HF transformation matrices ...
+    @time C_HF = O1b_import(Params,Orb,"IO/" * Params.Calc.Path * "/Bin/C_HF.bin")
+
+    # Prepare Particle & Hole orbitals ...
+    @time N_Particle, Particle, N_Hole, Hole = orbitals_ph_make(Params,Orb)
+
+    # Prepare 1p-1h phonon states ...
+    @time N_Phonon, Phonon = orbitals_one_phonon_make(N_Particle,Particle,N_Hole,Hole)
+
+    # Initialize transition operators ...
+    @time TrOp = Tr1b_initialize(Params,Orb)
+
+    @time TrOp = Tr1b_transformation(Params,TrOp,Orb,C_HF)
+
+    # Count & pre-index all phonon states in JP subspaces ...
+    @time N_nu, Orb_Phonon = HF_RPA_phonon_count(Params,N_Phonon,Phonon)
+
+    # Allocate matrices A & B ...
+    @time A, B = HF_RPA_allocate(Params,N_nu,Orb_Phonon,Phonon,Particle,Hole,Orb,Orb_NN,V_NN)
+
+    # Solve TDA eigenvalue problem and RPA generalized-eigenvalue problem ...
+    @time E_TDA, X_TDA, E_RPA, X_RPA, Y_RPA = HF_RPA_diagonalize(Params,A,B,N_nu,Orb_Phonon,Phonon,Particle,Hole,TrOp)
+
+    # Calculate RPA One-Body Density Matrix (OBDM) ...
+    @time Rho_RPA = HF_RPA_OBDM(Params,Orb,Orb_Phonon,Phonon,Particle,Hole,N_nu,Y_RPA)
+
+    # Transform RPA OBDM to the LHO basis ...
+    Rho_RPA = O1B(C_HF.p * Rho_RPA.p * C_HF.p', C_HF.n * Rho_RPA.n * C_HF.n')
+
+    @time CI_TDA, CI_RPA = HF_RPA_collectivity(Params,N_nu,X_TDA,X_RPA,Y_RPA)
+
+    # Evaluation of the RPA correlation energy ... for testing purposes!!!
+    HF_RPA_energy_density(Params,N_nu,N_Particle,Particle,N_Hole,Hole,Orb,Orb_NN,V_NN,E_RPA,Y_RPA,Rho_RPA)
+
+    HF_RPA_energy_bosonic(Params,N_nu,E_RPA,Y_RPA)
+    #_____________________________________________________________________________________________________
+
+    # Calculate RPA correlation energy ...
+    @time E_RPA_corr = HF_RPA_energy(Params,N_nu,E_RPA,Y_RPA)
+
+    # Electromagnetic reduced multipole operators ...
+    @time rM_TDA, rM_RPA = HF_RPA_rM(Params,N_nu,Orb_Phonon,Phonon,Particle,Hole,X_TDA,X_RPA,Y_RPA,TrOp)
+
+    # Electromagnetic reduced transition intensities ...
+    @time rB_TDA = HF_RPA_rB(Params,N_nu,rM_TDA)
+    @time rB_RPA = HF_RPA_rB(Params,N_nu,rM_RPA)
+
+    # Export of RPA & TDA solutions ...
+    @time HF_RPA_export(Params,Orb,N_nu,E_RPA_corr,E_TDA,E_RPA,X_RPA,Y_RPA,CI_TDA,CI_RPA,rB_TDA,rB_RPA,Rho_RPA,C_HF)
+
+    # RPA transition radial densities export ...
+    # Requires manual control in corresponding function in HF_RPA_Transitions.jl file
+    #   !!! One has to choose the phonons to export !!!
+    #@time HF_RPA_Transition_Densities_Export(Params,Orb,N_nu,Orb_Phonon,Phonon,Particle,Hole,X_RPA,Y_RPA,TrOp)
 
     return
 end

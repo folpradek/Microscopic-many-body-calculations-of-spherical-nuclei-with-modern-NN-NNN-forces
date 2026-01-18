@@ -1,6 +1,6 @@
-function HF_RPA_Phonon_Count(Params::Vector{Any},N_Phonon::Int64,Phonon::Vector{PhState},Particle::pnSVector,Hole::pnSVector)
+function HF_RPA_phonon_count(Params::Parameters,N_Phonon::Int64,Phonon::Vector{PhState})
     # Read calculation parameters ...
-    N_max = Params[4]
+    N_max = Params.Calc.Nmax
     N_2max = 2*N_max
     J_max = N_2max + 1
 
@@ -13,7 +13,7 @@ function HF_RPA_Phonon_Count(Params::Vector{Any},N_Phonon::Int64,Phonon::Vector{
             # Count the number of phonon states ...
             N_ph = 0
             @inbounds for ph in 1:N_Phonon
-                p,h,t_ph,J_ph,P_ph,a_p,l_p,j_p,E_p,a_h,l_h,j_h,E_h = Phonon_Ind(ph,Phonon,Particle,Hole)
+                J_ph, P_ph = Phonon[ph].J, Phonon[ph].P
                 if J_ph == J && P == P_ph
                     N_ph += 1
                 end
@@ -24,7 +24,7 @@ function HF_RPA_Phonon_Count(Params::Vector{Any},N_Phonon::Int64,Phonon::Vector{
             Phonon_Orb = Vector{Int64}(undef,N_ph)
             N_ph = 0
             @inbounds for ph in 1:N_Phonon
-                p,h,t_ph,J_ph,P_ph,a_p,l_p,j_p,E_p,a_h,l_h,j_h,E_h = Phonon_Ind(ph,Phonon,Particle,Hole)
+                J_ph, P_ph = Phonon[ph].J, Phonon[ph].P
                 if J_ph == J && P == P_ph
                     N_ph += 1
                     Phonon_Orb[N_ph] = ph

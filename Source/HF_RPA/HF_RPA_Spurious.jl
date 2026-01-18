@@ -1,8 +1,17 @@
-function Spur_Ini(N_ph::Int64,Orb_Phonon::Vector{Int64},Phonon::Vector{PhState},Particle::pnSVector,Hole::pnSVector,TrOp::TranOper)
+function Spur_Ini(N_ph::Int64,Orb_Phonon::Vector{Int64},Phonon::Vector{PhState},Particle::pnSVector,Hole::pnSVector,TrOp::Tr1B)
     ph_CMS = Vector{Float64}(undef,N_ph)
     @inbounds for ph in 1:N_ph
         Ind_ph = Orb_Phonon[ph]
-        p,h,t_ph,J_ph,P_ph,a_p,l_p,j_p,E_p,a_h,l_h,j_h,E_h = Phonon_Ind(Ind_ph,Phonon,Particle,Hole)
+        p, h = Phonon[Ind_ph].p, Phonon[Ind_ph].h
+        t_ph = Phonon[Ind_ph].tz
+        if t_ph == -1
+            a_p = Particle.p[p].a
+            a_h = Hole.p[h].a
+        elseif t_ph == 1
+            a_p = Particle.n[p].a
+            a_h = Hole.n[h].a
+        end
+
         if t_ph == 1
             ME_E1 = TrOp.E1.n[a_p,a_h]
             ph_CMS[ph] = ME_E1

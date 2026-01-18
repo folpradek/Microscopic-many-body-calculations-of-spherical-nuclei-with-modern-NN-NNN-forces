@@ -1,11 +1,12 @@
-function HF_RPA_Diagonalize(Params::Vector{Any},A::Matrix{Matrix{Float64}},B::Matrix{Matrix{Float64}},N_nu::Matrix{Int64},Orb_Phonon::Matrix{Vector{Int64}},Phonon::Vector{PhState},Particle::pnSVector,Hole::pnSVector,TrOp::TranOper)
+function HF_RPA_diagonalize(Params::Parameters,A::Matrix{Matrix{Float64}},B::Matrix{Matrix{Float64}},N_nu::Matrix{Int64},Orb_Phonon::Matrix{Vector{Int64}},Phonon::Vector{PhState},Particle::pnSVector,Hole::pnSVector,TrOp::Tr1B)
     # Read calculation parameters ...
-    N_max = Params[4]
+    N_max = Params.Calc.Nmax
     N_2max = 2*N_max
     J_max = N_2max + 1
-    Orthogon = Params[5]
+    Orthogon = Params.Calc.RPA.Ortho
 
-    JP_List = JP_Ini(J_max)
+    # Initialite the list of values of J & P for iteration ...
+    JP_List = JP_initialize(J_max)
 
     println("\nDiagonalizing RPA & TDA matrices ...")
     
@@ -361,5 +362,4 @@ function HF_RPA_Diagonalize(Params::Vector{Any},A::Matrix{Matrix{Float64}},B::Ma
     println("\nDiagonalization done ...")
 
     return E_TDA, X_TDA, E_RPA, X_RPA, Y_RPA
-
 end

@@ -1,6 +1,6 @@
-function HF_RPA_rM(Params::Vector{Any},N_nu::Matrix{Int64},Orb_Phonon::Matrix{Vector{Int64}},Phonon::Vector{PhState},Particle::pnSVector,Hole::pnSVector,X_TDA::Matrix{Matrix{Float64}},X_RPA::Matrix{Matrix{ComplexF64}},Y_RPA::Matrix{Matrix{ComplexF64}},TrOp::TranOper)
+function HF_RPA_rM(Params::Parameters,N_nu::Matrix{Int64},Orb_Phonon::Matrix{Vector{Int64}},Phonon::Vector{PhState},Particle::pnSVector,Hole::pnSVector,X_TDA::Matrix{Matrix{Float64}},X_RPA::Matrix{Matrix{ComplexF64}},Y_RPA::Matrix{Matrix{ComplexF64}},TrOp::Tr1B)
     # Read calculation parameters ...
-    Orthogon = Params[5]
+    Orthogon = Params.Calc.RPA.Ortho
 
     println("\nCalculating reduced transition matrix elements rM ...")
 
@@ -19,7 +19,15 @@ function HF_RPA_rM(Params::Vector{Any},N_nu::Matrix{Int64},Orb_Phonon::Matrix{Ve
         nME0Sum_RPA = ComplexF64(0.0)
         @inbounds  for Ind_ph in 1:N_ph
             ph = Orb_Phonon[J+1,P][Ind_ph]
-            p,h,t_ph,J_ph,P_ph,a_p,l_p,j_p,E_p,a_h,l_h,j_h,E_h = Phonon_Ind(ph,Phonon,Particle,Hole)
+            p, h = Phonon[ph].p, Phonon[ph].h
+            t_ph = Phonon[ph].tz
+            if t_ph == -1
+                a_p = Particle.p[p].a
+                a_h = Hole.p[h].a
+            elseif t_ph == 1
+                a_p = Particle.n[p].a
+                a_h = Hole.n[h].a
+            end
 
             if t_ph == -1
                 ME0_TDA = TrOp.E0.p[a_p,a_h] * X_TDA[J+1,P][Ind_ph,nu]
@@ -60,7 +68,15 @@ function HF_RPA_rM(Params::Vector{Any},N_nu::Matrix{Int64},Orb_Phonon::Matrix{Ve
             nME1Sum_RPA = ComplexF64(0.0)
             @inbounds  for Ind_ph in 1:N_ph
                 ph = Orb_Phonon[J+1,P][Ind_ph]
-                p,h,t_ph,J_ph,P_ph,a_p,l_p,j_p,E_p,a_h,l_h,j_h,E_h = Phonon_Ind(ph,Phonon,Particle,Hole)
+                p, h = Phonon[ph].p, Phonon[ph].h
+                t_ph = Phonon[ph].tz
+                if t_ph == -1
+                    a_p = Particle.p[p].a
+                    a_h = Hole.p[h].a
+                elseif t_ph == 1
+                    a_p = Particle.n[p].a
+                    a_h = Hole.n[h].a
+                end
 
                 if t_ph == -1
                     ME1_TDA = TrOp.E1.p[a_p,a_h] * X_TDA[J+1,P][Ind_ph,nu] * -1.0
@@ -101,7 +117,15 @@ function HF_RPA_rM(Params::Vector{Any},N_nu::Matrix{Int64},Orb_Phonon::Matrix{Ve
         nME2Sum_RPA = ComplexF64(0.0)
         @inbounds  for Ind_ph in 1:N_ph
             ph = Orb_Phonon[J+1,P][Ind_ph]
-            p,h,t_ph,J_ph,P_ph,a_p,l_p,j_p,E_p,a_h,l_h,j_h,E_h = Phonon_Ind(ph,Phonon,Particle,Hole)
+            p, h = Phonon[ph].p, Phonon[ph].h
+            t_ph = Phonon[ph].tz
+            if t_ph == -1
+                a_p = Particle.p[p].a
+                a_h = Hole.p[h].a
+            elseif t_ph == 1
+                a_p = Particle.n[p].a
+                a_h = Hole.n[h].a
+            end
 
             if t_ph == -1
                 ME2_TDA = TrOp.E2.p[a_p,a_h] * X_TDA[J+1,P][Ind_ph,nu]
@@ -141,7 +165,15 @@ function HF_RPA_rM(Params::Vector{Any},N_nu::Matrix{Int64},Orb_Phonon::Matrix{Ve
         nME3Sum_RPA = ComplexF64(0.0)
         @inbounds  for Ind_ph in 1:N_ph
             ph = Orb_Phonon[J+1,P][Ind_ph]
-            p,h,t_ph,J_ph,P_ph,a_p,l_p,j_p,E_p,a_h,l_h,j_h,E_h = Phonon_Ind(ph,Phonon,Particle,Hole)
+            p, h = Phonon[ph].p, Phonon[ph].h
+            t_ph = Phonon[ph].tz
+            if t_ph == -1
+                a_p = Particle.p[p].a
+                a_h = Hole.p[h].a
+            elseif t_ph == 1
+                a_p = Particle.n[p].a
+                a_h = Hole.n[h].a
+            end
 
             if t_ph == -1
                 ME3_TDA = TrOp.E3.p[a_p,a_h] * X_TDA[J+1,P][Ind_ph,nu] * -1.0
@@ -184,9 +216,9 @@ function HF_RPA_rM(Params::Vector{Any},N_nu::Matrix{Int64},Orb_Phonon::Matrix{Ve
     return rM_TDA, rM_RPA
 end
 
-function HF_RPA_rB(Params::Vector{Any},N_nu::Matrix{Int64},rM::ReducedMultipole)
+function HF_RPA_rB(Params::Parameters,N_nu::Matrix{Int64},rM::ReducedMultipole)
     # Read parameters ...
-    Orthogon = Params[5]
+    Orthogon = Params.Calc.RPA.Ortho
 
     println("\nCalculating reduced transition intensities rB ...")
 
@@ -221,8 +253,8 @@ function HF_RPA_rB(Params::Vector{Any},N_nu::Matrix{Int64},rM::ReducedMultipole)
             rB_ivE1[nu] = 0.25 * abs(rM.E1.p[nu] - rM.E1.n[nu])^2
         end
     else
-        A = Params[1]
-        Z = Params[2]
+        A = Params.Calc.A
+        Z = Params.Calc.Z
         e_p = Float64(A - Z) / Float64(A)
         e_n = Float64(Z) / Float64(A)
         @inbounds for nu in 1:N_ph
@@ -274,17 +306,16 @@ function HF_RPA_rB(Params::Vector{Any},N_nu::Matrix{Int64},rM::ReducedMultipole)
     return rB_ph
 end
 
-function HF_RPA_Transition_Densities_Export(Params::Vector{Any},Orb::Vector{NOrb},N_nu::Matrix{Int64},Orb_Phonon::Matrix{Vector{Int64}},Phonon::Vector{PhState},Particle::pnSVector,Hole::pnSVector,X_RPA::Matrix{Matrix{ComplexF64}},Y_RPA::Matrix{Matrix{ComplexF64}},TrOp::TranOper)
+function HF_RPA_transition_densities_export(Params::Parameters,Orb::Vector{Orb1B},N_nu::Matrix{Int64},Orb_Phonon::Matrix{Vector{Int64}},Phonon::Vector{PhState},Particle::pnSVector,Hole::pnSVector,X_RPA::Matrix{Matrix{ComplexF64}},Y_RPA::Matrix{Matrix{ComplexF64}},TrOp::Tr1B)
     # Read parameters ...
-    A = Params[1]
-    Z = Params[2]
-    HbarOmega = Params[3]
-    N_max = Params[4]
+    A = Params.Calc.A
+    Z = Params.Calc.Z
+    HbarOmega = Params.Calc.hw
+    N_max = Params.Calc.Nmax
     N_2max = 2*N_max
     a_max = div((N_max+1)*(N_max+2),2)
     J_max = N_2max + 1
-    Orthogon = Params[5]
-    Output_File = Params[8]
+    Output_File = Params.Calc.Path
 
     # Calc params ...
     J = 1
@@ -300,27 +331,7 @@ function HF_RPA_Transition_Densities_Export(Params::Vector{Any},Orb::Vector{NOrb
     nu_neutron = 0.5 * m_n * HbarOmega / HbarC^2
 
     # Import HF basis transformation matrices ...
-    pU_Import = Output_File * "/Bin/pU.bin"
-    pU = Matrix{Float64}(undef,a_max,a_max)
-    open(pU_Import, "r") do Read_File
-        @inbounds for a in 1:a_max
-            @inbounds for b in 1:a_max
-                ME = read(Read_File, Float64)
-                pU[a,b] = ME
-            end
-        end
-    end
-
-    nU_Import = Output_File * "/Bin/nU.bin"
-    nU = Matrix{Float64}(undef,a_max,a_max)
-    open(nU_Import, "r") do Read_File
-        @inbounds for a in 1:a_max
-            @inbounds for b in 1:a_max
-                ME = read(Read_File, Float64)
-                nU[a,b] = ME
-            end
-        end
-    end
+    C = transformation_matrix_read(Params,Orb,"IO/" * Params.Calc.Path * "/Bin/C_HF.bin")
 
     # Preallocate grid ...
     r1 = 0.0 + 1e-8
@@ -337,8 +348,17 @@ function HF_RPA_Transition_Densities_Export(Params::Vector{Any},Orb::Vector{NOrb
         @inbounds for nu in 1:N_nu_max
             pRad, nRad = 0.0, 0.0
             @inbounds for ph in 1:N_ph
-                ph_ind = Orb_Phonon[J+1,P][ph]
-                p,h,t_ph,J_ph,P_ph,a_p,l_p,j_p,E_p,a_h,l_h,j_h,E_h = Phonon_Ind(ph_ind,Phonon,Particle,Hole)
+                ind_ph = Orb_Phonon[J+1,P][ph]
+                p, h = Phonon[ind_ph].p, Phonon[ind_ph].h
+                t_ph = Phonon[ind_ph].tz
+                if t_ph == -1
+                    a_p, l_p, j_p = Particle.p[p].a, Particle.p[p].l, Particle.p[p].j
+                    a_h, l_h, j_h = Hole.p[h].a, Hole.p[h].l, Hole.p[h].j
+                elseif t_ph == 1
+                    a_p, l_p, j_p = Particle.n[p].a, Particle.n[p].l, Particle.n[p].j
+                    a_h, l_h, j_h = Hole.n[h].a, Hole.n[h].l, Hole.n[h].j
+                end
+                
                 pPsi, nPsi = 0.0, 0.0
                 @inbounds for a_k in 1:a_max
                     l_k = Orb[a_k].l
@@ -351,10 +371,10 @@ function HF_RPA_Transition_Densities_Export(Params::Vector{Any},Orb::Vector{NOrb
                             n_l = Orb[a_l].n
                             if (j_h == j_l) && (l_h == l_l)
                                 if t_ph == -1
-                                    Psi = Psi_rad_LHO(r,n_k,l_k,nu_proton) * Psi_rad_LHO(r,n_l,l_l,nu_proton) * pU[a_k,a_p] * pU[a_l,a_h]
+                                    Psi = Psi_rad_LHO(r,n_k,l_k,nu_proton) * Psi_rad_LHO(r,n_l,l_l,nu_proton) * C.p[a_k,a_p] * C.p[a_l,a_h]
                                     pPsi += Psi
                                 elseif t_ph == 1
-                                    Psi = Psi_rad_LHO(r,n_k,l_k,nu_neutron) * Psi_rad_LHO(r,n_l,l_l,nu_neutron) * nU[a_k,a_p] * nU[a_l,a_h]
+                                    Psi = Psi_rad_LHO(r,n_k,l_k,nu_neutron) * Psi_rad_LHO(r,n_l,l_l,nu_neutron) * C.n[a_k,a_p] * C.n[a_l,a_h]
                                     nPsi += Psi
                                 end
                             end
@@ -378,12 +398,8 @@ function HF_RPA_Transition_Densities_Export(Params::Vector{Any},Orb::Vector{NOrb
     @views pRho_RPA_rad = round.(pRho_RPA_rad,digits = 7)
     @views nRho_RPA_rad = round.(nRho_RPA_rad,digits = 7)
 
-    # Export files ...
-    if Orthogon == true
-        Output_Path = Output_File * "/RPA/Densities/HF_RPA_Radial_Transition_Densities_Ortho.dat"
-    else
-        Output_Path = Output_File * "/RPA/Densities/HF_RPA_Radial_Transition_Densities_Spur.dat"
-    end
+    # Export path ...
+    Output_Path = Output_File * "/RPA/Densities/HF_RPA_Radial_Transition_Densities.dat"
 
     open(Output_Path, "w") do Export_File
         @inbounds for i in 1:N_Sampling

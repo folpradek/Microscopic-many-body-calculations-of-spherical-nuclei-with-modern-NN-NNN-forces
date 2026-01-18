@@ -6,6 +6,14 @@ function KroneckerDelta(a::Int,b::Int)
     end
 end
 
+function kronecker_delta(a::Int,b::Int)
+    if a == b
+        return 1
+    else
+        return 0
+    end
+end
+
 pretty_summarysize(x) = Base.format_bytes(Base.summarysize(x))
 
 function lorentzian(x::Float64,w::Float64)
@@ -62,7 +70,7 @@ function Psi_rad_LHO(r::Float64,n::Int64,l::Int64,nu::Float64)
     return Psi
 end
 
-function Integrate_Trap(x::Vector{Float64},y::Vector{Float64})
+function integrate_trap(x::Vector{Float64},y::Vector{Float64})
     n = length(x) - 1
     I = 0.0
     @inbounds for i in 1:n
@@ -72,11 +80,11 @@ function Integrate_Trap(x::Vector{Float64},y::Vector{Float64})
     return I
 end
 
-function Radial_Moment_Matrix_LHO(lambda::Int64,HbarOmega::Float64,Orb::Vector{NOrb})
+function radial_moment_matrix_LHO(lambda::Int64,hw::Float64,Orb::Vector{Orb1B})
     HbarC = 197.326980
     m_n = 939.565346
     m_p = 938.272013
-    b_osc = 1.0/ (HbarC / sqrt(0.5 * (m_p + m_n) * HbarOmega))
+    b_osc = 1.0/ (HbarC / sqrt(0.5 * (m_p + m_n) * hw))
     
     a_max = length(Orb)
     Radial_lambda = zeros(Float64,a_max,a_max)
@@ -87,7 +95,7 @@ function Radial_Moment_Matrix_LHO(lambda::Int64,HbarOmega::Float64,Orb::Vector{N
         @inbounds for b in 1:a_max
             n_b = Orb[b].n
             l_b = Orb[b].l
-            ME = Radial_Moment_LHO(lambda,n_a,l_a,n_b,l_b,b_osc)
+            ME = radial_moment_LHO(lambda,n_a,l_a,n_b,l_b,b_osc)
             Radial_lambda[a,b] = ME
         end
     end
@@ -95,7 +103,7 @@ function Radial_Moment_Matrix_LHO(lambda::Int64,HbarOmega::Float64,Orb::Vector{N
     return Radial_lambda
 end
 
-function Radial_Moment_LHO(k::Int64,n_a::Int64,l_a::Int64,n_b::Int64,l_b::Int64,b_osc::Float64)
+function radial_moment_LHO(k::Int64,n_a::Int64,l_a::Int64,n_b::Int64,l_b::Int64,b_osc::Float64)
     gamma = Vector{Float64}(undef,171)
     gamma[1] = 1.0
     gamma[2] = sqrt(pi)
@@ -153,7 +161,7 @@ function logm(A::Matrix{Float64})
     return A_log
 end
 
-function JP_Ini(J_max::Int64)
+function JP_initialize(J_max::Int64)
     JP = Vector{Vector{Int64}}(undef,2*(J_max+1))
     JP_count = 0
     @inbounds for J in 0:J_max

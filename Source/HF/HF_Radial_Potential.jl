@@ -1,20 +1,22 @@
-function HF_Radial_Potential(Params::Vector{Any},Orb::Vector{NOrb},pU::Matrix{Float64},nU::Matrix{Float64},Vp::Matrix{Float64},Vn::Matrix{Float64})
+function HF_Radial_Potential(Params::Parameters,Orb::Vector{Orb1B},U::O1B,V::O1B)
     # Basic constants ...
     HbarC = 197.326980
     m_n = 939.565346
     m_p = 938.272013
 
     # Read calculation parameters ...
-    HbarOmega = Params[1]
-    A = Params[5]
-    Z = Params[6]
-    N_max = Params[7]
-    Output_File = Params[13]
+    HbarOmega = Params.Calc.hw
+    A = Params.Calc.A
+    Z = Params.Calc.Z
+    N_max = Params.Calc.Nmax
+    Output_File = Params.Calc.Path
 
     a_max = div((N_max+1)*(N_max+2),2)
 
+    pU, nU = U.p, U.n
+
     # Transform the potential from the LHO basis to the HF basis ...
-    Vp, Vn = pU' * Vp * pU, nU' * Vn * nU
+    V = O1B(pU' * V.p * pU, nU' * V.n * nU)
 
     println("\nPreparing radial mean-field potentials...")
 
@@ -51,8 +53,8 @@ function HF_Radial_Potential(Params::Vector{Any},Orb::Vector{NOrb},pU::Matrix{Fl
                     nRad += nPsi
                 end
             end
-            pSum += Vp[a,a] * Float64(Orb[a].pO) * (pRad)^2 * Float64(Orb[a].j + 1)
-            nSum += Vn[a,a] * Float64(Orb[a].nO) * (nRad)^2 * Float64(Orb[a].j + 1)
+            pSum += V.p[a,a] * Float64(Orb[a].pO) * (pRad)^2 * Float64(Orb[a].j + 1)
+            nSum += V.n[a,a] * Float64(Orb[a].nO) * (nRad)^2 * Float64(Orb[a].j + 1)
         end
         Vp_rad[i] = pSum
         Vn_rad[i] = nSum

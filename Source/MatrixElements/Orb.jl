@@ -1,8 +1,12 @@
-function Make_Orbitals(A::Int64,Z::Int64,N_max::Int64)
-    println("\nPreparing oscillator basis single-particle orbitals ...")
+function orbitals_make(Params::Parameters)
+    # Read parameters ...
+    A, Z, N_max = Params.Calc.A, Params.Calc.Z, Params.Int.Nmax
     a_max = div((N_max + 1)*(N_max + 2),2)
-    Orb = Vector{NOrb}(undef, a_max)
-    Orb_arr = zeros(Int64, a_max, 6)
+
+    # Make LHO single-particle orbitals ...
+    println("\nPreparing oscillator basis single-particle orbitals ...")
+    Orb = Vector{Orb1B}(undef,a_max)
+    Orb_arr = zeros(Int64,a_max,6)
     a = 0
     @inbounds for N = 0:N_max
         @inbounds for l in 0:N
@@ -64,17 +68,22 @@ function Make_Orbitals(A::Int64,Z::Int64,N_max::Int64)
         end
     end
     @inbounds for b = 1:a_max
-        Orb[b] = NOrb(Orb_arr[b,1],Orb_arr[b,2],Orb_arr[b,3],Orb_arr[b,4],Orb_arr[b,5],Orb_arr[b,6])
+        Orb[b] = Orb1B(Orb_arr[b,1],Orb_arr[b,2],Orb_arr[b,3],Orb_arr[b,4],Orb_arr[b,5],Orb_arr[b,6])
     end
     println("\nOrbitals initialized ...")
     return Orb
 end
 
-function Make_ParticleHole_Orbitals(N_max::Int64,Input_File::String,Orb::Vector{NOrb})
-    a_max = div((N_max + 1)*(N_max + 2),2)
+function orbitals_export(Params::Parameters,Orb::Vector{Orb1B})
+    N_max = Params.Calc.Nmax
+    Output_File = Params.Calc.Path
+    a_max = div((N_max+1)*(N_max+2),2)
 
-    # Import single-particle energies ...
-    pE_Import = Input_File * "/Bin/pE.bin"
+    Orbitals_LHO_Export = "IO/" * Output_File * "/Orbitals_LHO.dat"
+    Orbitals_HF_Export = "IO/" * Output_File * "/Orbitals_HF.dat"
+
+    # Import HF s.p. energies ...
+    pE_Import = "IO/" * Output_File * "/Bin/pE_HF.bin"
     pSPE = Vector{Float64}(undef,a_max)
     open(pE_Import, "r") do Read_File
         @inbounds for a in 1:a_max
@@ -83,12 +92,82 @@ function Make_ParticleHole_Orbitals(N_max::Int64,Input_File::String,Orb::Vector{
         end
     end
 
-    nE_Import = Input_File * "/Bin/nE.bin"
+    nE_Import = "IO/" * Output_File * "/Bin/nE_HF.bin"
     nSPE = Vector{Float64}(undef,a_max)
     open(nE_Import, "r") do Read_File
         @inbounds for a in 1:a_max
             ME = read(Read_File, Float64)
             nSPE[a] = ME
+        end
+    end
+
+    # Export Single-Particle State Orbitals in the LHO basis ...
+    println("\nExporting LHO basis s.p. orbitals in human-readable format ...")
+
+    open(Orbitals_LHO_Export, "w") do Export_File
+        println(Export_File, "a\tn\tl\t2j\tpOc\tnOc")
+        @inbounds for a in 1:a_max
+            Row = string(Orb[a].a) * "\t" * string(Orb[a].n) *
+                  "\t" * string(Orb[a].l) * "\t" * string(Orb[a].j) *
+                  "\t " * string(Orb[a].pO) * "\t " * string(Orb[a].nO)
+            println(Export_File, Row)
+        end
+    
+    end
+    
+    println("\nExported LHO basis s.p. orbitals in human-readable format ...")
+
+    # Export Single-Particle State Orbitals in the HF basis ...
+    println("\nExporting HF basis s.p. orbitals in human-readable format ...")
+
+    open(Orbitals_HF_Export, "w") do Export_File
+        println(Export_File, "a\tl\t2j\tpOc\tnOc\tE_p\t\t\tE_n")
+        @inbounds for a in 1:a_max
+            Row = string(Orb[a].a) * "\t" * string(Orb[a].l) * "\t" * string(Orb[a].j) *
+                  "\t " * string(Orb[a].pO) * "\t " * string(Orb[a].nO) *
+                  "\t" * string(pSPE[a]) * "\t" * string(nSPE[a])
+            println(Export_File, Row)
+        end
+    end
+    
+    println("\nExported HF basis s.p. orbitals in human-readable format ...")
+
+    return
+end
+
+function orbitals_ph_make(Params::Parameters,Orb::Vector{Orb1B})
+    # Read parameters ...
+    Input_File = Params.Calc.Path
+    N_max = Params.Calc.Nmax
+    a_max = div((N_max + 1)*(N_max + 2),2)
+
+    # Import HF single-particle energies ...
+    h_Import = "IO/" * Input_File * "/Bin/h_HF.bin"
+    pSPE = Vector{Float64}(undef,a_max)
+    nSPE = Vector{Float64}(undef,a_max)
+    open(h_Import, "r") do Read_File
+        # Read proton SPEs ...
+        @inbounds for a in 1:a_max
+            @inbounds for b in 1:a_max
+                if Orb[a].l == Orb[b].l && Orb[a].j == Orb[b].j
+                    ME = read(Read_File,Float64)
+                    if a == b
+                        pSPE[a] = ME
+                    end
+                end
+            end
+        end
+
+        # Read neutron SPEs ...
+        @inbounds for a in 1:a_max
+            @inbounds for b in 1:a_max
+                if Orb[a].l == Orb[b].l && Orb[a].j == Orb[b].j
+                    ME = read(Read_File,Float64)
+                    if a == b
+                        nSPE[a] = ME
+                    end
+                end
+            end
         end
     end
 
@@ -155,7 +234,38 @@ function Make_ParticleHole_Orbitals(N_max::Int64,Input_File::String,Orb::Vector{
 
 end
 
-function Make_Phonon_Orbitals(N_Particle::pnInteger,Particle::pnSVector,N_Hole::pnInteger,Hole::pnSVector)
+function orbitals_ph_list(J_max::Int64,N_Particle::pnInteger,Particle::pnSVector,N_Hole::pnInteger,Hole::pnSVector)
+    N_Phonon = zeros(Int64,J_max+1,2)
+
+    pParticleHole = zeros(Int64,J_max+1,2,N_Particle.p,N_Hole.p)
+    nParticleHole = zeros(Int64,J_max+1,2,N_Particle.n,N_Hole.n)
+
+    @inbounds for p in 1:N_Particle.p
+        @inbounds for h in 1:N_Hole.p
+            P = rem(Particle.p[p].l + Hole.p[h].l,2) + 1
+            @inbounds for J in div(abs(Particle.p[p].j - Hole.p[h].j),2):div(Particle.p[p].j + Hole.p[h].j,2)
+                N_Phonon[J+1,P] += 1
+                pParticleHole[J+1,P,p,h] = N_Phonon[J+1,P]
+            end
+        end
+    end
+    
+    @inbounds for p in 1:N_Particle.n
+        @inbounds for h in 1:N_Hole.n
+            P = rem(Particle.n[p].l + Hole.n[h].l,2) + 1
+            @inbounds for J in div(abs(Particle.n[p].j - Hole.n[h].j),2):div(Particle.n[p].j + Hole.n[h].j,2)
+                N_Phonon[J+1,P] += 1
+                nParticleHole[J+1,P,p,h] = N_Phonon[J+1,P]
+            end
+        end
+    end
+
+    ParticleHole = pnArray(pParticleHole,nParticleHole)
+
+    return ParticleHole
+end
+
+function orbitals_one_phonon_make(N_Particle::pnInteger,Particle::pnSVector,N_Hole::pnInteger,Hole::pnSVector)
     N_Phonon = 0
 
     for p in 1:N_Particle.p
@@ -198,122 +308,85 @@ function Make_Phonon_Orbitals(N_Particle::pnInteger,Particle::pnSVector,N_Hole::
     return N_Phonon, Phonon
 end
 
-function Phonon_Ind(ph::Int64,Phonon::Vector{PhState},Particle::pnSVector,Hole::pnSVector)
-    p = Phonon[ph].p
-    h = Phonon[ph].h
-    t_ph = Phonon[ph].tz
-    J = Phonon[ph].J
-    P = Phonon[ph].P
-    if t_ph == -1
-        a_p = Particle.p[p].a
-        l_p = Particle.p[p].l
-        j_p = Particle.p[p].j
-        E_p = Particle.p[p].E
-        a_h = Hole.p[h].a
-        l_h = Hole.p[h].l
-        j_h = Hole.p[h].j
-        E_h = Hole.p[h].E
-    elseif t_ph == 1
-        a_p = Particle.n[p].a
-        l_p = Particle.n[p].l
-        j_p = Particle.n[p].j
-        E_p = Particle.n[p].E
-        a_h = Hole.n[h].a
-        l_h = Hole.n[h].l
-        j_h = Hole.n[h].j
-        E_h = Hole.n[h].E
-    end
-    return p, h, t_ph, J, P, a_p, l_p, j_p, E_p, a_h, l_h ,j_h, E_h
-end
+function orbitals_2qp_make(Params::Parameters,Orb::Vector{Orb1B})
+    # Read parameters ...
+    N_max = Params.Calc.Nmax
+    a_max = div((N_max + 1)*(N_max + 2),2)
+    J_max = 2*N_max + 1
 
-function Orbitals_Export(Params::Vector{Any},Orb::Vector{NOrb})
-    N_max = Params[7]
-    Output_File = Params[13]
-    a_max = div((N_max+1)*(N_max+2),2)
+    # Count the total number of 2qp orbitals for each J & P ... a => b convention ...
+    N_2qp = zeros(Int64,2,J_max+1)
 
-    Orbitals_LHO_Export = "IO/" * Output_File * "/Orbitals_LHO.dat"
-    Orbitals_HF_Export = "IO/" * Output_File * "/Orbitals_HF.dat"
-
-    # Import HF s.p. energies ...
-    pE_Import = "IO/" * Output_File * "/Bin/pE.bin"
-    pSPE = Vector{Float64}(undef,a_max)
-    open(pE_Import, "r") do Read_File
-        @inbounds for a in 1:a_max
-            ME = read(Read_File, Float64)
-            pSPE[a] = ME
-        end
-    end
-
-    nE_Import = "IO/" * Output_File * "/Bin/nE.bin"
-    nSPE = Vector{Float64}(undef,a_max)
-    open(nE_Import, "r") do Read_File
-        @inbounds for a in 1:a_max
-            ME = read(Read_File, Float64)
-            nSPE[a] = ME
-        end
-    end
-
-    # Export Single-Particle State Orbitals in the LHO basis ...
-    println("\nExporting LHO basis s.p. orbitals in human-readable format ...")
-
-    open(Orbitals_LHO_Export, "w") do Export_File
-        println(Export_File, "a\tn\tl\t2j\tpOc\tnOc")
-        @inbounds for a in 1:a_max
-            Row = string(Orb[a].a) * "\t" * string(Orb[a].n) *
-                  "\t" * string(Orb[a].l) * "\t" * string(Orb[a].j) *
-                  "\t " * string(Orb[a].pO) * "\t " * string(Orb[a].nO)
-            println(Export_File, Row)
-        end
-    
-    end
-    
-    println("\nExported LHO basis s.p. orbitals in human-readable format ...")
-
-    # Export Single-Particle State Orbitals in the HF basis ...
-    println("\nExporting HF basis s.p. orbitals in human-readable format ...")
-
-    open(Orbitals_HF_Export, "w") do Export_File
-        println(Export_File, "a\tl\t2j\tpOc\tnOc\tE_p\t\t\tE_n")
-        @inbounds for a in 1:a_max
-            Row = string(Orb[a].a) * "\t" * string(Orb[a].l) * "\t" * string(Orb[a].j) *
-                  "\t " * string(Orb[a].pO) * "\t " * string(Orb[a].nO) *
-                  "\t" * string(pSPE[a]) * "\t" * string(nSPE[a])
-            println(Export_File, Row)
-        end
-    end
-    
-    println("\nExported HF basis s.p. orbitals in human-readable format ...")
-
-    return
-end
-
-function Make_ParticleHole_List(J_max::Int64,N_Particle::pnInteger,Particle::pnSVector,N_Hole::pnInteger,Hole::pnSVector)
-    N_Phonon = zeros(Int64,J_max+1,2)
-
-    pParticleHole = zeros(Int64,J_max+1,2,N_Particle.p,N_Hole.p)
-    nParticleHole = zeros(Int64,J_max+1,2,N_Particle.n,N_Hole.n)
-
-    @inbounds for p in 1:N_Particle.p
-        @inbounds for h in 1:N_Hole.p
-            P = rem(Particle.p[p].l + Hole.p[h].l,2) + 1
-            @inbounds for J in div(abs(Particle.p[p].j - Hole.p[h].j),2):div(Particle.p[p].j + Hole.p[h].j,2)
-                N_Phonon[J+1,P] += 1
-                pParticleHole[J+1,P,p,h] = N_Phonon[J+1,P]
-            end
-        end
-    end
-    
-    @inbounds for p in 1:N_Particle.n
-        @inbounds for h in 1:N_Hole.n
-            P = rem(Particle.n[p].l + Hole.n[h].l,2) + 1
-            @inbounds for J in div(abs(Particle.n[p].j - Hole.n[h].j),2):div(Particle.n[p].j + Hole.n[h].j,2)
-                N_Phonon[J+1,P] += 1
-                nParticleHole[J+1,P,p,h] = N_Phonon[J+1,P]
+    # pp counts ...
+    @inbounds for a in 1:a_max
+        l_a ,j_a = Orb[a].l , Orb[a].j
+        @inbounds for b in 1:a
+            l_b ,j_b = Orb[b].l , Orb[b].j
+            @inbounds for J in div(abs(j_a - j_b),2):div(j_a + j_b,2)
+                if a != b || (a == b && rem(J,2) == 0)
+                    P = rem(l_a + l_b,2) + 1
+                    N_2qp[P,J+1] += 1
+                end
             end
         end
     end
 
-    ParticleHole = pnArray(pParticleHole,nParticleHole)
+    # nn counts ...
+    @inbounds for a in 1:a_max
+        l_a ,j_a = Orb[a].l , Orb[a].j
+        @inbounds for b in 1:a
+            l_b ,j_b = Orb[b].l , Orb[b].j
+            @inbounds for J in div(abs(j_a - j_b),2):div(j_a + j_b,2)
+                if a != b || (a == b && rem(J,2) == 0)
+                    P = rem(l_a + l_b,2) + 1
+                    N_2qp[P,J+1] += 1
+                end
+            end
+        end
+    end
 
-    return ParticleHole
+    # Initialize the matrix storage for 2qp orbitals ...
+    Orb_2qp_list = Matrix{Vector{Ind2qp}}(undef,2,J_max+1)
+
+    # Initialize the entries of the storage matrix for 2qp orbitals ...
+    @inbounds for P in 1:2
+        @inbounds for J in 0:J_max
+            Orb_2qp_list[P,J+1] = Vector{Ind2qp}(undef,N_2qp[P,J+1])
+            N_2qp[P,J+1] = 0
+        end
+    end
+
+    # Allocate the indices for 2qp orbitals ...
+        # pp entries ...
+    @inbounds for a in 1:a_max
+        l_a ,j_a = Orb[a].l, Orb[a].j
+        @inbounds for b in 1:a
+            l_b ,j_b = Orb[b].l, Orb[b].j
+            @inbounds for J in div(abs(j_a - j_b),2):div(j_a + j_b,2)
+                if a != b || (a == b && rem(J,2) == 0)
+                    P = rem(l_a + l_b,2) + 1
+                    N_2qp[P,J+1] += 1
+                    Orb_2qp_list[P,J+1][N_2qp[P,J+1]] = Ind2qp(a,b,-1)
+                end
+            end
+        end
+    end
+        # nn entries ...
+    @inbounds for a in 1:a_max
+        l_a ,j_a = Orb[a].l, Orb[a].j
+        @inbounds for b in 1:a
+            l_b ,j_b = Orb[b].l, Orb[b].j
+            @inbounds for J in div(abs(j_a - j_b),2):div(j_a + j_b,2)
+                if a != b || (a == b && rem(J,2) == 0)
+                    P = rem(l_a + l_b,2) + 1
+                    N_2qp[P,J+1] += 1
+                    Orb_2qp_list[P,J+1][N_2qp[P,J+1]] = Ind2qp(a,b,1)
+                end
+            end
+        end
+    end
+
+    Orb_2qp = qpOrb2B(N_2qp,Orb_2qp_list)
+
+    return Orb_2qp
 end

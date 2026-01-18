@@ -1,75 +1,135 @@
-function HF_Solver(Int_Params::Vector{Any}, NN_File::String, NNN_File::String, Calc_Params::Vector{Any})
-    # Calculation parameters
-    Params = Any[]
-    for k in 1:length(Int_Params)
-        Params = push!(Params, Int_Params[k])
-    end
-    for k in 1:length(Calc_Params)
-        Params = push!(Params,Calc_Params[k])
-    end
-    Params = push!(Params, "A" * string(Params[5]) * "_Z" * string(Params[6]) *
-                    "_hw" * string(Params[1]) * "_Nmax" * string(Params[7]) *
-                    "_N2max" * string(Params[8]) * "_N3max" * string(Params[9]) *
-                    "_" * string(Params[10]))
+function HF_solver(Params::Parameters)
+    # Make single-particle orbitals - NuHamil ordering ...
+    Orb = orbitals_make(Params)
 
-    println("Starting calculations with NO2B NN+NNN interaction")
-    println("\nInteraction data:")
-    println("HbarOmega = " * string(Params[1]) * " , N_max = " * string(Params[2]) * " , N_2max = " * string(Params[3]) *
-            " , N_3max = " * string(Params[4]) * ", J-scheme basis size = " * string(div((Params[2]+1)*(Params[2]+2),2)) * ", M-scheme basis size = " *
-            string(div((Params[2]+1)*(Params[2]+2)*(Params[2]+3),6)))
-    println("\nCalculation data:")
-    println("A = " * string(Params[5]) * " , Z = " * string(Params[6]) * " , N_max = " * string(Params[7]) *
-            " , N_2max = " * string(Params[8]) * " , N_3max = " * string(Params[9]) * ", J-scheme basis size = " *
-            string(div((Params[7]+1)*(Params[7]+2),2)) * ", M-scheme basis size = " * string(div((Params[7]+1)*(Params[7]+2)*(Params[7]+3),6)))
-    println("Center of mass correction option is set to:    " * string(Params[10]))
-    if Params[10] == "CMS1+2B"
-        println("\nCombined 1-body + 2-body center of mass motion correction is included ...")
-    elseif Params[10] == "CMS2B"
-        println("\nOnly pure 2-body center of mass motion correction is included ...")
-    else
-        println("\nNo center of mass motion correction is included ...")
-    end
+    # 1-body kinetic operator ...
+    @time T = T1b(Params,Orb)
 
-    if Threads.nthreads() > 1
-        println("\n_________________________________________________________")
-        println("Multiple active threads detected ...")
-        println("Parallelization report:    Number of active threads = " * string(Threads.nthreads()))
-        println("_________________________________________________________")
-    end
+    # 2-body bare NN interaction & Orbitals ...
+    @time V_NN, Orb_NN = V2b_read(Params,Orb)
 
-    # Make new directory for results
-    if isdir("IO/" * Params[13])
-        rm("IO/" * Params[13], recursive = true)
-    end
-    mkdir("IO/" * Params[13])
-    mkdir("IO/" * Params[13] * "/Bin")
-    mkdir("IO/" * Params[13] * "/HF")
-    mkdir("IO/" * Params[13] * "/HF/Densities")
+    # 3-body bare NNN interaction & Orbitals ...
+    @time V_NNN, Orb_NNN = V3b_no2b_read(Params,Orb)
 
-    # Make orbitals - NuHamil ordering
-    Orb = Make_Orbitals(Params[5],Params[6],Params[2])
+    # Solve HF equations ...
+    @time h, C, Rho, Iteration = HF_solve(Params,Orb,Orb_NN,Orb_NNN,T,V_NN,V_NNN)
 
-    # Start calculations
-    println("\nStarting spherical Hartree-Fock calculation ...")
+    # HF energy calculation ...
+    @time E_HF = HF_energy(Params,Rho,Orb,Orb_NN,Orb_NNN,T,V_NN,V_NNN)
 
-    @time VNN, Orb_NN = HF_NO2B(NN_File,NNN_File,Params,Orb)
+    # Calculate the total HF kinetic energy ...
+    @time T_HF = T1b_energy(Params,Rho,Orb,T)
 
-    if Params[11] == true
+    # Calculation summary ...
+    @time HF_summary(Params,E_HF,T_HF,Iteration)
 
-        @time VNN, Orb_NN = V2B_Res(Params,Orb,Orb_NN,VNN)
+    # Calculate & export radial HF densities & radii ...
+    Summary_File = "IO/" * Params.Calc.Path * "/HF/HF_Summary.dat"
+    Densities_File = "IO/" * Params.Calc.Path * "/HF/Densities/HF_Radial_Densities.dat"
+    @time OBDM_export(Params,Orb,Summary_File,Densities_File,Rho,C)
 
-        @time HF_MBPT(Params,Orb,Orb_NN,VNN)
+    # Calculate & export radial HF potential ...
+        # To be refined ... export non-local V^HF_lj 
+    #HF_Radial_Potential(Params,Orb,C,O1B((h.p .- t.p),(h.n .- t.n)))
 
-        @time V2B_Res_Export(Params,Orb_NN,VNN)
+    # Single-Particle States export ...
+    HF_SPS_summary(Params,h,Orb)
 
-        if Params[12] == "HRBin" || Params[12] == "HR"
-            @time Orbitals_Export(Params,Orb)
+    # Export of single-particle HF Hamiltonian & HF single-particle states ... in matrix C ...
+    HF_export(Params,C,h,Orb)
+
+    # Perform Beyond-mean-field HF-MBPT calculations & export the residual 2-body NN interation ...
+    if Params.Calc.HF.BMF == true
+        # Make density-dependent residual NN interaction ... NO2B approximation ...
+        @time V_NN = V2b_residual_no2b(Params,Orb,Orb_NN,Orb_NNN,Rho,V_NN,V_NNN)
+
+        # Transform the density-dependent NN interaction to the target HF basis ...
+        @time V_NN_Res = O2b_transformation(Params,Orb,Orb_NN,V_NN,C)
+
+        # Export residual 2-body interaction in the binary format ...
+        V_NN_Export_Path = "IO/" * Params.Calc.Path * "/Bin/V2B_HF.bin"
+        @time O2b_export(Params,Orb_NN,V_NN_Res,V_NN_Export_Path)
+
+        # Perform HF-MBPT calculation ...
+        @time HF_MBPT(Params,Orb,Orb_NN,V_NN_Res)
+
+        # Export HF solutions ... orbitals & NN interaction in the Human-Readable Format (HRF) ...
+        #   Maybe some refinement needed here???
+        if Params.Calc.HF.HRF == true
+            println("Exporting the HF single-particle orbitals & residual 2-body NN interaction in the Human-Readable-Format (HRF) ...")
+            orbitals_export(Params,Orb)
+            O2b_export_HRF(Params,Orb_NN,O_NN,"IO/" * Params.Calc.Path * "/Bin/V2B_HF.dat")
         end
 
+        # Deallocate the residual NN interaction ...
+        V_NN_Res = nothing
+
+        # Perform the Garbace Collection ...
+        GC.gc()
+
     end
-    
-    println("\nAll calculations have finished ...\n")
+
+    # Deallocate the NN & NNN interaction ...
+    V_NN, V_NNN = nothing, nothing
+
+    # Perform the Garbace Collection ...
+    GC.gc()
 
     return
+end
+
+function HF_solve(Params::Parameters,Orb::Vector{Orb1B},Orb_NN::Orb2B,Orb_NNN::Orb3B,T::O1B,V_NN::O2B,V_NNN::Array{Vector{Vector{Float32}},4})
+    # Read calculation parameters ...
+    N_max = Params.Calc.Nmax
+    a_max = div((N_max + 1) * (N_max + 2), 2)
+    epsilon = Params.Calc.HF.Tol
+    Iteration_max = Params.Calc.HF.IMax
+
+    # Initialize local iteration parameters ...
+    dE, Iteration = 1.0, 0
+
+    # Preallocate arrays ...
+        # Vectors for single-particle energies ...
+    SPE = pnVector(zeros(Float64,a_max),zeros(Float64,a_max))
+    SPE_old = pnVector(zeros(Float64,a_max),zeros(Float64,a_max))
+
+        # HF single-particle Hamiltonian matrix ...
+    h = O1B(zeros(Float64,a_max,a_max), zeros(Float64,a_max,a_max))
+
+        # Initial guess on single-particle states & 1-body density matrix ... LHO orbitals ...
+    C = O1B(diagm(ones(Float64,a_max)), diagm(ones(Float64,a_max)))
+    Rho = HF_density_operator(a_max,C,Orb)
+
+    # Iteration of spherical HF equations ...
+    @time while (Iteration < Iteration_max) && (dE > epsilon)
+
+        # Perform iteration of HF equations ... fills the HF Hamiltonian ...
+        h = HF_allocate(Params,Rho,Orb,Orb_NN,Orb_NNN,T,V_NN,V_NNN)
+
+        # Diagonalize the HF Hamiltonians ...
+        pSPE, pC = eigen(Symmetric(h.p),sortby=+)
+        nSPE, nC = eigen(Symmetric(h.n),sortby=+)
+
+        # Allocate single-particle energies & HF orbitals ...
+        SPE = pnVector(pSPE,nSPE)
+        C = O1B(pC,nC)
+
+        # Reorder HF orbitals & SPEs ...
+        C, SPE = HF_orbital_ordering(Orb,a_max,C,SPE)
+
+        # Generate new HF density matrix ...
+        Rho = HF_density_operator(a_max,C,Orb)
     
+        # Check on convergence of HF SPEs ...
+        dE = (sum(abs.(SPE.p .- SPE_old.p )) + sum(abs.(SPE.n .- SPE_old.n))) / Float64(2 * a_max)
+
+        SPE_old  = pnVector(deepcopy(SPE.p), deepcopy(SPE.n))
+        Iteration += 1
+
+        @printf("\tHF iteration number: %4d   dE = %12.9f MeV\n", Iteration, dE)
+    end
+
+    println("\nIteration of HF eqs. with NO2B NN+NNN interaction has finished ...")
+
+    return O1B(diagm(SPE.p),diagm(SPE.n)), C, Rho, Iteration
 end
